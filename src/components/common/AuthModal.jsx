@@ -1,7 +1,16 @@
-import React, { useState, useEffect } from 'react';
-import { X, Mail, Lock, User, ArrowRight, ShieldCheck, AlertCircle, CheckCircle2 } from 'lucide-react';
-import Button from './Button';
-
+import React, { useState, useEffect } from "react";
+import {
+  X,
+  Mail,
+  Lock,
+  User,
+  ArrowRight,
+  AlertCircle,
+  CheckCircle2,
+} from "lucide-react";
+import Button from "./Button";
+import CodeSlots from "../bits/CodeSlots";
+import { supabase } from "../../lib/supabase";
 /**
  * AuthModal component providing a JWT / Supabase Auth ready login and sign-up form.
  * Strictly requires Email and Password with client-side syntax and length validation.
@@ -10,32 +19,45 @@ export default function AuthModal({
   isOpen,
   onClose,
   onSuccess,
-  defaultTab = 'login', // 'login' | 'signup'
+  recoveryMode = false,
+  onRecoveryComplete,
+  defaultTab = "login", // 'login' | 'signup'
 }) {
   const [tab, setTab] = useState(defaultTab);
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [fullName, setFullName] = useState('');
-  const [error, setError] = useState('');
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [fullName, setFullName] = useState("");
+  const [error, setError] = useState("");
+  const [statusMessage, setStatusMessage] = useState("");
+  const [otpStep, setOtpStep] = useState(false);
+  const [otp, setOtp] = useState("");
+  const [challengeId, setChallengeId] = useState("");
   const [loading, setLoading] = useState(false);
-  const [resetSent, setResetSent] = useState(false);
 
   useEffect(() => {
     if (isOpen) {
-      setError('');
-      setResetSent(false);
+      setError("");
+      setStatusMessage("");
+      setOtpStep(false);
+      setOtp("");
+      setChallengeId("");
     }
   }, [isOpen, tab]);
+
+  useEffect(() => {
+    if (isOpen) setTab(defaultTab);
+  }, [isOpen, defaultTab]);
 
   // Handle Escape key
   useEffect(() => {
     const handleKeyDown = (e) => {
-      if (e.key === 'Escape' && isOpen) {
+      if (e.key === "Escape" && isOpen) {
         onClose();
       }
     };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
   }, [isOpen, onClose]);
 
   if (!isOpen) return null;
@@ -44,44 +66,150 @@ export default function AuthModal({
     return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val);
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    setError('');
+    setError("");
+    setStatusMessage("");
 
-    // Format Validations
     if (!email.trim() || !validateEmail(email)) {
-      setError('Please provide a valid email address (e.g., name@domain.com).');
+      setError("Please provide a valid email address (e.g., name@domain.com).");
       return;
     }
 
     if (!password || password.length < 6) {
-      setError('Password must be at least 6 characters in length.');
+      setError("Password must be at least 6 characters in length.");
       return;
     }
 
     setLoading(true);
+    try {
+      if (tab === "signup") {
+        const { data, error } = await supabase.auth.signUp({
+          email: email.trim().toLowerCase(),
+          password,
+          options: {
+            data: { full_name: fullName.trim() },
+            emailRedirectTo: window.location.origin,
+          },
+        });
+        if (error) throw error;
 
-    // Mock JWT / Supabase Auth handshake simulation
-    setTimeout(() => {
+        if (data.session) {
+          onSuccess?.({
+            id: data.user.id,
+            email: data.user.email,
+            name: data.user.user_metadata?.full_name || data.user.email.split("@")[0],
+          });
+          onClose();
+          return;
+        }
+
+        setStatusMessage("Account created. Check your email and follow the confirmation link before signing in.");
+        return;
+      }
+
+      if (otpStep) {
+        if (!/^\d{6}$/.test(otp)) {
+          setError("Enter the six-digit code from your email.");
+          return;
+        }
+
+        const { data, error } = await supabase.functions.invoke("login-email-otp", {
+          body: {
+            action: "verify",
+            email: email.trim().toLowerCase(),
+            password,
+            challengeId,
+            code: otp,
+          },
+        });
+        if (error || !data?.access_token || !data?.refresh_token) {
+          setError("That code is incorrect or expired. Check the code and try again.");
+          return;
+        }
+
+        const { data: sessionData, error: sessionError } = await supabase.auth.setSession({
+          access_token: data.access_token,
+          refresh_token: data.refresh_token,
+        });
+        if (sessionError) throw sessionError;
+        const user = sessionData.user;
+        onSuccess?.({
+          id: user.id,
+          email: user.email,
+          name: user.user_metadata?.full_name || user.email.split("@")[0],
+        });
+        onClose();
+        return;
+      }
+
+      const { data, error } = await supabase.functions.invoke("login-email-otp", {
+        body: {
+          action: "request",
+          email: email.trim().toLowerCase(),
+          password,
+        },
+      });
+      if (error || !data?.challengeId) {
+        setError("Unable to start sign-in. Please try again.");
+        return;
+      }
+      setChallengeId(data.challengeId);
+      setOtpStep(true);
+      setStatusMessage(`If the sign-in details are valid, a six-digit code was sent to ${email.trim()}.`);
+    } catch (error) {
+      setError(error.message || "Unable to complete this request. Please try again.");
+    } finally {
       setLoading(false);
-      const user = {
-        id: `usr_${Date.now()}`,
-        email: email.trim(),
-        name: fullName.trim() || email.split('@')[0],
-        token: `jwt_terratix_${btoa(email)}_${Date.now()}`,
-      };
-      if (onSuccess) onSuccess(user);
-      onClose();
-    }, 600);
+    }
   };
 
-  const handleForgotPassword = () => {
+  const handleForgotPassword = async () => {
+    setError("");
+    setStatusMessage("");
     if (!email.trim() || !validateEmail(email)) {
-      setError('Please enter your email address above to receive a reset link.');
+      setError(
+        "Please enter your email address above to receive a reset link.",
+      );
       return;
     }
-    setError('');
-    setResetSent(true);
+
+    setLoading(true);
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(
+        email.trim().toLowerCase(),
+        { redirectTo: `${window.location.origin}/` },
+      );
+      if (error) throw error;
+      setStatusMessage("If an account exists for that email, a password reset link has been sent.");
+    } catch (error) {
+      setError(error.message || "Unable to send a reset link. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handlePasswordUpdate = async (e) => {
+    e.preventDefault();
+    setError("");
+    setStatusMessage("");
+    if (password.length < 6) return setError("Password must be at least 6 characters in length.");
+    if (password !== confirmPassword) return setError("The passwords do not match.");
+
+    setLoading(true);
+    try {
+      const { error } = await supabase.auth.updateUser({ password });
+      if (error) throw error;
+      setPassword("");
+      setConfirmPassword("");
+      setStatusMessage("Your password has been updated.");
+      onRecoveryComplete?.();
+      onClose();
+    } catch (error) {
+      setError(error.message || "Unable to update your password. Please try again.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -91,7 +219,7 @@ export default function AuthModal({
         if (e.target === e.currentTarget) onClose();
       }}
     >
-      <div className="bg-elevated border border-clayBrown/80 max-w-md w-full rounded-2xl shadow-dune-lg p-6 sm:p-8 relative font-serif text-warmCream">
+      <div className="bg-elevated border border-clayBrown/80 w-full max-w-[calc(100vw-2rem)] sm:max-w-md max-h-[calc(100dvh-2rem)] overflow-y-auto rounded-2xl shadow-dune-lg p-4 sm:p-6 md:p-8 relative font-serif text-warmCream">
         {/* Close Button */}
         <button
           type="button"
@@ -105,43 +233,47 @@ export default function AuthModal({
         {/* Brand Monogram */}
         <div className="text-center space-y-2 mb-6">
           <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-terracotta to-clayBrown flex items-center justify-center border border-terracotta/40 mx-auto shadow-dune-sm">
-            <span className="font-serif font-black text-xl text-softButter">T</span>
+            <span className="font-serif font-black text-xl text-softButter">
+              T
+            </span>
           </div>
           <h3 className="font-serif font-black text-2xl text-softButter">
-            {tab === 'login' ? 'Sign in to TerraTix' : 'Create an Account'}
+            {recoveryMode ? "Set a New Password" : tab === "login" ? "Sign in to TerraTix" : "Create an Account"}
           </h3>
           <p className="text-xs text-mutedClay max-w-xs mx-auto">
-            {tab === 'login'
-              ? 'Access your tickets, manage bookings, and enjoy express checkout.'
-              : 'Join thousands of eventgoers discovering premier live experiences.'}
+            {recoveryMode
+              ? "Choose a new password for your account."
+              : tab === "login"
+              ? "Access your tickets, manage bookings, and enjoy express checkout."
+              : "Join thousands of eventgoers discovering premier live experiences."}
           </p>
         </div>
 
         {/* Tab Toggle */}
-        <div className="flex bg-darkRoast p-1 rounded-lg border border-elevatedBorder mb-5">
+        {!recoveryMode && <div className="flex bg-darkRoast p-1 rounded-lg border border-elevatedBorder mb-5">
           <button
             type="button"
-            onClick={() => setTab('login')}
+            onClick={() => setTab("login")}
             className={`flex-1 py-1.5 text-xs font-serif rounded-md transition-all ${
-              tab === 'login'
-                ? 'bg-clayBrown text-softButter font-semibold shadow-sm'
-                : 'text-mutedClay hover:text-warmCream'
+              tab === "login"
+                ? "bg-clayBrown text-softButter font-semibold shadow-sm"
+                : "text-mutedClay hover:text-warmCream"
             }`}
           >
             Sign In
           </button>
           <button
             type="button"
-            onClick={() => setTab('signup')}
+            onClick={() => setTab("signup")}
             className={`flex-1 py-1.5 text-xs font-serif rounded-md transition-all ${
-              tab === 'signup'
-                ? 'bg-clayBrown text-softButter font-semibold shadow-sm'
-                : 'text-mutedClay hover:text-warmCream'
+              tab === "signup"
+                ? "bg-clayBrown text-softButter font-semibold shadow-sm"
+                : "text-mutedClay hover:text-warmCream"
             }`}
           >
             New Account
           </button>
-        </div>
+        </div>}
 
         {/* Validation / Status Messages */}
         {error && (
@@ -151,16 +283,36 @@ export default function AuthModal({
           </div>
         )}
 
-        {resetSent && (
+        {statusMessage && (
           <div className="flex items-start gap-2 p-3 mb-4 rounded-lg bg-softButter/15 border border-softButter/30 text-xs text-softButter">
             <CheckCircle2 className="w-4 h-4 text-softButter shrink-0 mt-0.5" />
-            <span>Password reset instructions sent to <strong>{email}</strong>. Check your inbox.</span>
+            <span>{statusMessage}</span>
           </div>
         )}
 
         {/* Form */}
-        <form onSubmit={handleSubmit} className="space-y-4">
-          {tab === 'signup' && (
+        <form onSubmit={recoveryMode ? handlePasswordUpdate : handleSubmit} className="space-y-4">
+          {recoveryMode ? (
+            <>
+              <div>
+                <label className="block text-xs uppercase font-mono tracking-wider text-mutedClay mb-1.5">New Password</label>
+                <input type="password" required minLength={6} autoComplete="new-password" value={password} onChange={(e) => setPassword(e.target.value)} className="w-full bg-darkRoast border border-elevatedBorder focus:border-terracotta rounded-lg px-3 py-2.5 text-xs text-warmCream focus:outline-none" />
+              </div>
+              <div>
+                <label className="block text-xs uppercase font-mono tracking-wider text-mutedClay mb-1.5">Confirm New Password</label>
+                <input type="password" required minLength={6} autoComplete="new-password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} className="w-full bg-darkRoast border border-elevatedBorder focus:border-terracotta rounded-lg px-3 py-2.5 text-xs text-warmCream focus:outline-none" />
+              </div>
+            </>
+          ) : otpStep ? (
+            <div className="space-y-4 text-center">
+              <p className="text-sm text-mutedClay">Enter the verification code for <strong className="text-warmCream">{email}</strong></p>
+              <CodeSlots value={otp} onChange={setOtp} label="EMAIL VERIFICATION CODE" copyable={false} />
+              <button type="button" onClick={() => { setOtpStep(false); setOtp(""); setChallengeId(""); setStatusMessage(""); }} className="text-xs text-softButter hover:underline">
+                Back to sign in
+              </button>
+            </div>
+          ) : <>
+          {tab === "signup" && (
             <div>
               <label className="block text-xs uppercase font-mono tracking-wider text-mutedClay mb-1.5">
                 Full Name
@@ -200,10 +352,11 @@ export default function AuthModal({
               <label className="block text-xs uppercase font-mono tracking-wider text-mutedClay">
                 Password <span className="text-terracotta">*</span>
               </label>
-              {tab === 'login' && (
+              {tab === "login" && (
                 <button
                   type="button"
                   onClick={handleForgotPassword}
+                  disabled={loading}
                   className="text-[11px] text-softButter hover:text-terracotta hover:underline transition-colors"
                 >
                   Forgot Password?
@@ -223,6 +376,7 @@ export default function AuthModal({
               <Lock className="w-4 h-4 text-mutedClay absolute left-3 top-3 pointer-events-none" />
             </div>
           </div>
+          </>}
 
           <Button
             variant="primary"
@@ -232,16 +386,20 @@ export default function AuthModal({
             className="w-full mt-2"
             icon={<ArrowRight className="w-4 h-4" />}
           >
-            {loading ? 'Authenticating...' : tab === 'login' ? 'Sign In' : 'Create Free Account'}
+            {loading ? "Please wait…" : recoveryMode ? "Update Password" : otpStep
+              ? "Verify Code"
+              : tab === "login"
+                ? "Sign In"
+                : "Create Free Account"}
           </Button>
 
           <div className="pt-2 text-center">
-            {tab === 'login' ? (
+            {tab === "login" ? (
               <p className="text-xs text-mutedClay">
-                Don't have an account?{' '}
+                Don't have an account?{" "}
                 <button
                   type="button"
-                  onClick={() => setTab('signup')}
+                  onClick={() => setTab("signup")}
                   className="text-softButter font-semibold hover:text-terracotta hover:underline ml-1"
                 >
                   Sign Up
@@ -249,10 +407,10 @@ export default function AuthModal({
               </p>
             ) : (
               <p className="text-xs text-mutedClay">
-                Already registered?{' '}
+                Already registered?{" "}
                 <button
                   type="button"
-                  onClick={() => setTab('login')}
+                  onClick={() => setTab("login")}
                   className="text-softButter font-semibold hover:text-terracotta hover:underline ml-1"
                 >
                   Sign In
@@ -262,11 +420,6 @@ export default function AuthModal({
           </div>
         </form>
 
-        {/* Security Trust Badge */}
-        <div className="mt-6 pt-4 border-t border-elevatedBorder flex items-center justify-center gap-2 text-[11px] text-mutedClay/80">
-          <ShieldCheck className="w-3.5 h-3.5 text-terracotta" />
-          <span>JWT-encrypted authentication • No spam guarantee</span>
-        </div>
       </div>
     </div>
   );

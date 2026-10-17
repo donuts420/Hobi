@@ -14,10 +14,15 @@ export default function CodeSlots({
   copyable = true,
   label = 'TICKET VERIFICATION HASH',
   size = 'md',
+  value,
+  onChange,
+  length = 6,
 }) {
   const [copied, setCopied] = useState(false);
 
-  const characters = code.split('');
+  const isInput = typeof onChange === 'function';
+  const shownCode = isInput ? (value || '').padEnd(length, ' ').slice(0, length) : code;
+  const characters = shownCode.split('');
 
   const handleCopy = () => {
     if (!copyable) return;
@@ -41,10 +46,23 @@ export default function CodeSlots({
         </div>
       )}
 
-      <div className="flex items-center gap-1.5 sm:gap-2">
+      <div className="relative flex items-center gap-1.5 sm:gap-2">
+        {isInput && (
+          <input
+            aria-label={label || 'One-time password'}
+            autoFocus
+            autoComplete="one-time-code"
+            inputMode="numeric"
+            maxLength={length}
+            pattern="[0-9]*"
+            value={value}
+            onChange={(event) => onChange(event.target.value.replace(/\D/g, '').slice(0, length))}
+            className="absolute inset-0 z-10 h-full w-full cursor-text opacity-0"
+          />
+        )}
         <div className="flex items-center gap-1.5 sm:gap-2">
           {characters.map((char, index) => {
-            const isDash = char === '-' || char === ' ';
+            const isDash = char === '-' || (!isInput && char === ' ');
             if (isDash) {
               return (
                 <span
@@ -59,7 +77,7 @@ export default function CodeSlots({
             return (
               <div
                 key={index}
-                className={`${slotSize[size] || slotSize.md} flex items-center justify-center font-mono font-bold text-softButter bg-darkRoast rounded border border-elevatedBorder shadow-inner transition-all hover:border-terracotta`}
+                className={`${slotSize[size] || slotSize.md} flex items-center justify-center font-mono font-bold text-softButter bg-darkRoast rounded border ${isInput && index === (value || '').length ? 'border-terracotta' : 'border-elevatedBorder'} shadow-inner transition-all hover:border-terracotta`}
               >
                 {char}
               </div>
@@ -67,7 +85,7 @@ export default function CodeSlots({
           })}
         </div>
 
-        {copyable && (
+        {copyable && !isInput && (
           <button
             type="button"
             onClick={handleCopy}

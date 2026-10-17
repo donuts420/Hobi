@@ -28,6 +28,7 @@ export default function Navbar({
   onSearchChange,
   onSelectCategory,
   onSignInClick,
+  onHostEventClick,
   currentUser = null,
   onSignOut,
 }) {
@@ -358,9 +359,7 @@ export default function Navbar({
               {/* Host an Event */}
               <button
                 type="button"
-                onClick={() => {
-                  alert('Host an Event portal coming soon! Contact partners@terratix.com to list your live event.');
-                }}
+                onClick={() => onHostEventClick && onHostEventClick()}
                 className="flex items-center gap-1.5 text-mutedClay hover:text-softButter transition-colors cursor-pointer"
               >
                 <PlusCircle className="w-3.5 h-3.5 text-terracotta" />
@@ -531,8 +530,9 @@ export default function Navbar({
           {/* Host an Event */}
           <div className="pt-2 border-t border-elevatedBorder">
             <button
+              type="button"
               onClick={() => {
-                alert('Host an Event portal coming soon! Contact partners@terratix.com to list your live event.');
+                onHostEventClick && onHostEventClick();
                 setMobileMenuOpen(false);
               }}
               className="w-full text-left px-3 py-2 text-xs font-serif text-terracotta hover:bg-elevatedBorder rounded flex items-center gap-2 cursor-pointer"
