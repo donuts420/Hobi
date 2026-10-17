@@ -1,7 +1,16 @@
-import React, { useState, useEffect } from 'react';
-import { X, Mail, Lock, User, ArrowRight, ShieldCheck, AlertCircle, CheckCircle2 } from 'lucide-react';
-import Button from './Button';
-
+import React, { useState, useEffect } from "react";
+import {
+  X,
+  Mail,
+  Lock,
+  User,
+  ArrowRight,
+  ShieldCheck,
+  AlertCircle,
+  CheckCircle2,
+} from "lucide-react";
+import Button from "./Button";
+import { supabase } from "../../lib/supabase";
 /**
  * AuthModal component providing a JWT / Supabase Auth ready login and sign-up form.
  * Strictly requires Email and Password with client-side syntax and length validation.
@@ -10,19 +19,19 @@ export default function AuthModal({
   isOpen,
   onClose,
   onSuccess,
-  defaultTab = 'login', // 'login' | 'signup'
+  defaultTab = "login", // 'login' | 'signup'
 }) {
   const [tab, setTab] = useState(defaultTab);
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [fullName, setFullName] = useState('');
-  const [error, setError] = useState('');
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [fullName, setFullName] = useState("");
+  const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [resetSent, setResetSent] = useState(false);
 
   useEffect(() => {
     if (isOpen) {
-      setError('');
+      setError("");
       setResetSent(false);
     }
   }, [isOpen, tab]);
@@ -30,12 +39,12 @@ export default function AuthModal({
   // Handle Escape key
   useEffect(() => {
     const handleKeyDown = (e) => {
-      if (e.key === 'Escape' && isOpen) {
+      if (e.key === "Escape" && isOpen) {
         onClose();
       }
     };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
   }, [isOpen, onClose]);
 
   if (!isOpen) return null;
@@ -46,16 +55,16 @@ export default function AuthModal({
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    setError('');
+    setError("");
 
     // Format Validations
     if (!email.trim() || !validateEmail(email)) {
-      setError('Please provide a valid email address (e.g., name@domain.com).');
+      setError("Please provide a valid email address (e.g., name@domain.com).");
       return;
     }
 
     if (!password || password.length < 6) {
-      setError('Password must be at least 6 characters in length.');
+      setError("Password must be at least 6 characters in length.");
       return;
     }
 
@@ -67,7 +76,7 @@ export default function AuthModal({
       const user = {
         id: `usr_${Date.now()}`,
         email: email.trim(),
-        name: fullName.trim() || email.split('@')[0],
+        name: fullName.trim() || email.split("@")[0],
         token: `jwt_terratix_${btoa(email)}_${Date.now()}`,
       };
       if (onSuccess) onSuccess(user);
@@ -77,10 +86,12 @@ export default function AuthModal({
 
   const handleForgotPassword = () => {
     if (!email.trim() || !validateEmail(email)) {
-      setError('Please enter your email address above to receive a reset link.');
+      setError(
+        "Please enter your email address above to receive a reset link.",
+      );
       return;
     }
-    setError('');
+    setError("");
     setResetSent(true);
   };
 
@@ -105,15 +116,17 @@ export default function AuthModal({
         {/* Brand Monogram */}
         <div className="text-center space-y-2 mb-6">
           <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-terracotta to-clayBrown flex items-center justify-center border border-terracotta/40 mx-auto shadow-dune-sm">
-            <span className="font-serif font-black text-xl text-softButter">T</span>
+            <span className="font-serif font-black text-xl text-softButter">
+              T
+            </span>
           </div>
           <h3 className="font-serif font-black text-2xl text-softButter">
-            {tab === 'login' ? 'Sign in to TerraTix' : 'Create an Account'}
+            {tab === "login" ? "Sign in to TerraTix" : "Create an Account"}
           </h3>
           <p className="text-xs text-mutedClay max-w-xs mx-auto">
-            {tab === 'login'
-              ? 'Access your tickets, manage bookings, and enjoy express checkout.'
-              : 'Join thousands of eventgoers discovering premier live experiences.'}
+            {tab === "login"
+              ? "Access your tickets, manage bookings, and enjoy express checkout."
+              : "Join thousands of eventgoers discovering premier live experiences."}
           </p>
         </div>
 
@@ -121,22 +134,22 @@ export default function AuthModal({
         <div className="flex bg-darkRoast p-1 rounded-lg border border-elevatedBorder mb-5">
           <button
             type="button"
-            onClick={() => setTab('login')}
+            onClick={() => setTab("login")}
             className={`flex-1 py-1.5 text-xs font-serif rounded-md transition-all ${
-              tab === 'login'
-                ? 'bg-clayBrown text-softButter font-semibold shadow-sm'
-                : 'text-mutedClay hover:text-warmCream'
+              tab === "login"
+                ? "bg-clayBrown text-softButter font-semibold shadow-sm"
+                : "text-mutedClay hover:text-warmCream"
             }`}
           >
             Sign In
           </button>
           <button
             type="button"
-            onClick={() => setTab('signup')}
+            onClick={() => setTab("signup")}
             className={`flex-1 py-1.5 text-xs font-serif rounded-md transition-all ${
-              tab === 'signup'
-                ? 'bg-clayBrown text-softButter font-semibold shadow-sm'
-                : 'text-mutedClay hover:text-warmCream'
+              tab === "signup"
+                ? "bg-clayBrown text-softButter font-semibold shadow-sm"
+                : "text-mutedClay hover:text-warmCream"
             }`}
           >
             New Account
@@ -154,13 +167,16 @@ export default function AuthModal({
         {resetSent && (
           <div className="flex items-start gap-2 p-3 mb-4 rounded-lg bg-softButter/15 border border-softButter/30 text-xs text-softButter">
             <CheckCircle2 className="w-4 h-4 text-softButter shrink-0 mt-0.5" />
-            <span>Password reset instructions sent to <strong>{email}</strong>. Check your inbox.</span>
+            <span>
+              Password reset instructions sent to <strong>{email}</strong>.
+              Check your inbox.
+            </span>
           </div>
         )}
 
         {/* Form */}
         <form onSubmit={handleSubmit} className="space-y-4">
-          {tab === 'signup' && (
+          {tab === "signup" && (
             <div>
               <label className="block text-xs uppercase font-mono tracking-wider text-mutedClay mb-1.5">
                 Full Name
@@ -200,7 +216,7 @@ export default function AuthModal({
               <label className="block text-xs uppercase font-mono tracking-wider text-mutedClay">
                 Password <span className="text-terracotta">*</span>
               </label>
-              {tab === 'login' && (
+              {tab === "login" && (
                 <button
                   type="button"
                   onClick={handleForgotPassword}
@@ -232,16 +248,20 @@ export default function AuthModal({
             className="w-full mt-2"
             icon={<ArrowRight className="w-4 h-4" />}
           >
-            {loading ? 'Authenticating...' : tab === 'login' ? 'Sign In' : 'Create Free Account'}
+            {loading
+              ? "Authenticating..."
+              : tab === "login"
+                ? "Sign In"
+                : "Create Free Account"}
           </Button>
 
           <div className="pt-2 text-center">
-            {tab === 'login' ? (
+            {tab === "login" ? (
               <p className="text-xs text-mutedClay">
-                Don't have an account?{' '}
+                Don't have an account?{" "}
                 <button
                   type="button"
-                  onClick={() => setTab('signup')}
+                  onClick={() => setTab("signup")}
                   className="text-softButter font-semibold hover:text-terracotta hover:underline ml-1"
                 >
                   Sign Up
@@ -249,10 +269,10 @@ export default function AuthModal({
               </p>
             ) : (
               <p className="text-xs text-mutedClay">
-                Already registered?{' '}
+                Already registered?{" "}
                 <button
                   type="button"
-                  onClick={() => setTab('login')}
+                  onClick={() => setTab("login")}
                   className="text-softButter font-semibold hover:text-terracotta hover:underline ml-1"
                 >
                   Sign In
