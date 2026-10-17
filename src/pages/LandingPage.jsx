@@ -1,0 +1,458 @@
+import React, { useState, useEffect } from 'react';
+import { Sparkles, Compass, Filter, ArrowRight, ShieldCheck, Ticket, Calendar, X, Check, MapPin, TrendingUp, Flame, Star } from 'lucide-react';
+import Button from '../components/common/Button';
+import Badge from '../components/common/Badge';
+import MarqueeStrip from '../components/bits/MarqueeStrip';
+import EventCard from '../components/cards/EventCard';
+import TicketTierCard from '../components/cards/TicketTierCard';
+import AccordionGallery from '../components/bits/AccordionGallery';
+
+export default function LandingPage({
+  selectedCity = 'Jaipur',
+  onSelectCity,
+  searchQuery = '',
+  selectedCategory: propCategory,
+  onSelectCategory: propOnSelectCategory,
+}) {
+  const [events, setEvents] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [internalCategory, setInternalCategory] = useState('All');
+  const selectedCategory = propCategory !== undefined ? propCategory : internalCategory;
+  const setSelectedCategory = propOnSelectCategory || setInternalCategory;
+  const [activeEvent, setActiveEvent] = useState(null);
+  const [selectedTiers, setSelectedTiers] = useState({});
+  const [bookingSuccess, setBookingSuccess] = useState(null);
+
+  // Load static mock events
+  useEffect(() => {
+    fetch('/mock/events.json')
+      .then((res) => {
+        if (!res.ok) throw new Error('Failed to load events');
+        return res.json();
+      })
+      .then((data) => {
+        setEvents(data);
+        setLoading(false);
+      })
+      .catch((err) => {
+        console.warn('Fallback loading mock data locally:', err);
+        setLoading(false);
+      });
+  }, []);
+
+  const categories = [
+    'All',
+    'Concerts & Gigs',
+    'Standup Comedy',
+    'Nightlife & Clubs',
+    'Food & Drinks',
+    'Theater & Arts',
+    'Workshops',
+  ];
+
+  // Multi-dimensional filtering by Category, City, and Search query
+  const filteredEvents = events.filter((e) => {
+    // Category match
+    const matchesCategory =
+      selectedCategory === 'All' || e.category === selectedCategory;
+
+    // City match (if not 'All Cities')
+    const matchesCity =
+      !selectedCity || selectedCity === 'All Cities' || e.city.toLowerCase() === selectedCity.toLowerCase();
+
+    // Search query match (title, artist, venue, category, city)
+    const matchesSearch =
+      !searchQuery.trim() ||
+      e.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      e.venue.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      e.city.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      e.category.toLowerCase().includes(searchQuery.toLowerCase());
+
+    return matchesCategory && matchesCity && matchesSearch;
+  });
+
+  // Spotlight trending events (first 3)
+  const spotlightEvents = events.slice(0, 3);
+
+  const handleSelectEvent = (event) => {
+    setActiveEvent(event);
+    setSelectedTiers({});
+    setBookingSuccess(null);
+  };
+
+  const handleTierQuantityChange = (tierName, qty) => {
+    setSelectedTiers((prev) => ({
+      ...prev,
+      [tierName]: qty,
+    }));
+  };
+
+  // Calculate order total in INR
+  const totalAmount = activeEvent
+    ? (activeEvent.ticketTypes || []).reduce((acc, tier) => {
+        const qty = selectedTiers[tier.name] || 0;
+        return acc + tier.price * qty;
+      }, 0)
+    : 0;
+
+  const totalTicketsCount = Object.values(selectedTiers).reduce((a, b) => a + b, 0);
+
+  const handleConfirmBooking = () => {
+    if (totalTicketsCount === 0 || !activeEvent) return;
+    const tierName = Object.keys(selectedTiers).find((k) => selectedTiers[k] > 0);
+    const bookingRef = `TRX-${Math.floor(100000 + Math.random() * 900000)}`;
+    setBookingSuccess({
+      ref: bookingRef,
+      eventTitle: activeEvent.title,
+      tierName: tierName || 'General Entry',
+      count: totalTicketsCount,
+      total: totalAmount,
+    });
+  };
+
+  return (
+    <div className="min-h-screen bg-darkRoast text-warmCream font-serif pb-24">
+      {/* Top Live Ticker Strip */}
+      <MarqueeStrip />
+
+      {/* Hero Section (District-style Discovery) */}
+      <section className="relative pt-16 pb-20 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto overflow-hidden">
+        {/* Subtle Background Glows */}
+        <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-[600px] h-[300px] bg-terracotta/10 blur-[120px] rounded-full pointer-events-none" />
+
+        <div className="text-center max-w-3xl mx-auto space-y-6 relative z-10">
+          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-elevated border border-clayBrown/60 text-xs font-serif text-softButter shadow-dune-sm">
+            <Sparkles className="w-3.5 h-3.5 text-terracotta animate-pulse" />
+            <span>Discover Top Experiences in {selectedCity}</span>
+          </div>
+
+          <h1 className="text-4xl sm:text-6xl font-black text-softButter tracking-tight leading-[1.15]">
+            Live the Moment. <span className="text-terracotta italic font-normal">Find Your Next Event.</span>
+          </h1>
+
+          <p className="text-base sm:text-lg text-warmCream/90 max-w-2xl mx-auto leading-relaxed">
+            Book tickets to top music festivals, comedy nights, intimate gigs, and food pop-ups across your city.
+          </p>
+
+          <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
+            <Button
+              variant="primary"
+              size="lg"
+              icon={<TrendingUp className="w-4 h-4" />}
+              onClick={() => {
+                document.getElementById('events-catalogue')?.scrollIntoView({ behavior: 'smooth' });
+              }}
+            >
+              Explore Events
+            </Button>
+            <Button
+              variant="outline"
+              size="lg"
+              onClick={() => {
+                document.getElementById('weekend-spotlight')?.scrollIntoView({ behavior: 'smooth' });
+              }}
+            >
+              Weekend Highlights
+            </Button>
+          </div>
+        </div>
+      </section>
+
+      {/* Quick Filter Chips Directly Below Hero */}
+      <section id="categories-bar" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-12">
+        <div className="bg-elevated/70 border border-elevatedBorder p-3 sm:p-4 rounded-xl shadow-dune-sm">
+          <div className="flex items-center justify-between gap-4 pb-3 border-b border-elevatedBorder/70 flex-wrap">
+            <div className="flex items-center gap-2">
+              <Filter className="w-4 h-4 text-terracotta" />
+              <span className="text-xs uppercase tracking-wider font-semibold text-softButter">
+                Browse by Category
+              </span>
+            </div>
+            <div className="flex items-center gap-3 text-xs text-mutedClay font-mono">
+              <span>City: <strong className="text-softButter">{selectedCity}</strong></span>
+              <span>•</span>
+              <span>{filteredEvents.length} Events Available</span>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2 overflow-x-auto pt-3 pb-1 no-scrollbar">
+            {categories.map((cat) => {
+              const isSelected = selectedCategory === cat;
+              return (
+                <button
+                  key={cat}
+                  onClick={() => setSelectedCategory(cat)}
+                  className={`px-4 py-2 rounded-lg font-serif text-xs whitespace-nowrap transition-all duration-200 ${
+                    isSelected
+                      ? 'bg-clayBrown text-softButter border border-clayBrown shadow-dune-sm font-semibold'
+                      : 'bg-darkRoast text-mutedClay border border-elevatedBorder hover:text-warmCream hover:border-clayBrown/60'
+                  }`}
+                >
+                  {cat}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      </section>
+
+      {/* Weekend Spotlight / Featured Highlights (Replaces old Perforated Stub) */}
+      <section id="weekend-spotlight" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-20">
+        <div className="flex items-center justify-between mb-8 pb-3 border-b border-elevatedBorder">
+          <div>
+            <div className="flex items-center gap-2 text-xs font-mono uppercase text-terracotta mb-1">
+              <Flame className="w-3.5 h-3.5" />
+              <span>Trending Spotlight</span>
+            </div>
+            <h2 className="text-2xl sm:text-3xl font-black text-softButter">
+              Top Picks This Weekend
+            </h2>
+          </div>
+          <span className="hidden sm:inline-block text-xs text-mutedClay">
+            Handpicked by TerraTix editors
+          </span>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {spotlightEvents.map((item, idx) => (
+            <div
+              key={item.id}
+              onClick={() => handleSelectEvent(item)}
+              className="group cursor-pointer bg-elevated border border-elevatedBorder hover:border-clayBrown rounded-xl overflow-hidden shadow-dune-sm hover:shadow-dune-md transition-all duration-300 flex flex-col justify-between"
+            >
+              <div className="relative aspect-[16/9] overflow-hidden">
+                <img
+                  src={item.bannerImage}
+                  alt={item.title}
+                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                />
+                <div className="absolute top-2.5 left-2.5">
+                  <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[10px] uppercase font-mono tracking-wider bg-black/75 backdrop-blur-md text-softButter border border-white/10 font-medium">
+                    <Star className="w-2.5 h-2.5 text-softButter fill-softButter" />
+                    {idx === 0 ? 'Selling Fast' : idx === 1 ? 'Weekend Hit' : 'Trending'}
+                  </span>
+                </div>
+                <div className="absolute bottom-2.5 right-2.5 bg-darkRoast/90 backdrop-blur-md px-2.5 py-1 rounded text-xs font-mono font-bold text-softButter border border-elevatedBorder">
+                  From ₹{item.priceStartingFrom.toLocaleString('en-IN')}
+                </div>
+              </div>
+
+              <div className="p-4 space-y-2 flex-1 flex flex-col justify-between">
+                <div>
+                  <div className="text-[11px] text-terracotta font-medium mb-1">
+                    {item.date} • {item.city}
+                  </div>
+                  <h3 className="font-serif font-bold text-base text-warmCream group-hover:text-softButter transition-colors line-clamp-1">
+                    {item.title}
+                  </h3>
+                  <p className="text-xs text-mutedClay line-clamp-2 mt-1">
+                    {item.venue}
+                  </p>
+                </div>
+
+                <div className="pt-3 border-t border-elevatedBorder/60 flex items-center justify-between text-xs">
+                  <span className="text-mutedClay">{item.category}</span>
+                  <span className="text-softButter group-hover:text-terracotta transition-colors font-medium flex items-center gap-1">
+                    Book Tickets <ArrowRight className="w-3.5 h-3.5" />
+                  </span>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* Main Events Catalogue Grid */}
+      <section id="events-catalogue" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-24">
+        <div className="flex items-center justify-between mb-8 pb-3 border-b border-elevatedBorder">
+          <div>
+            <h2 className="text-2xl sm:text-3xl font-black text-softButter">
+              All Upcoming Events {selectedCity !== 'All Cities' ? `in ${selectedCity}` : ''}
+            </h2>
+            <p className="text-xs text-mutedClay mt-1">
+              Select any event to view ticket categories, perks, and secure passes.
+            </p>
+          </div>
+          {searchQuery && (
+            <div className="text-xs text-softButter bg-clayBrown/40 px-3 py-1 rounded border border-clayBrown font-mono">
+              Filtered by: "{searchQuery}"
+            </div>
+          )}
+        </div>
+
+        {loading ? (
+          <div className="py-20 text-center font-serif text-mutedClay">
+            <div className="w-8 h-8 border-2 border-terracotta border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+            <p>Loading live events catalogue...</p>
+          </div>
+        ) : filteredEvents.length === 0 ? (
+          <div className="p-12 text-center bg-elevated rounded-xl border border-elevatedBorder max-w-xl mx-auto space-y-4">
+            <p className="text-warmCream font-serif text-lg">No events found matching your criteria.</p>
+            <p className="text-xs text-mutedClay">
+              Try switching your city or choosing "All Cities" in the navigation bar.
+            </p>
+            {onSelectCity && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => onSelectCity('All Cities')}
+              >
+                Show All Cities
+              </Button>
+            )}
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {filteredEvents.map((evt) => (
+              <EventCard
+                key={evt.id}
+                event={evt}
+                onSelect={(selected) => handleSelectEvent(selected)}
+              />
+            ))}
+          </div>
+        )}
+      </section>
+
+      {/* Interactive Booking Drawer / Modal */}
+      {activeEvent && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-darkRoast/85 backdrop-blur-md animate-fadeIn">
+          <div className="bg-elevated border border-clayBrown max-w-2xl w-full rounded-2xl shadow-dune-lg overflow-hidden max-h-[90vh] flex flex-col">
+            {/* Modal Header */}
+            <div className="p-5 sm:p-6 border-b border-elevatedBorder flex items-start justify-between bg-darkRoast/80">
+              <div className="space-y-1">
+                <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[10px] font-mono uppercase bg-black/60 text-softButter border border-white/10">
+                  {activeEvent.category}
+                </span>
+                <h3 className="font-serif font-bold text-xl sm:text-2xl text-softButter">
+                  {activeEvent.title}
+                </h3>
+                <p className="text-xs text-mutedClay flex items-center gap-1.5">
+                  <MapPin className="w-3.5 h-3.5 text-terracotta shrink-0" />
+                  <span>{activeEvent.venue}, {activeEvent.city} • {activeEvent.date}</span>
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setActiveEvent(null)}
+                className="p-2 rounded-lg bg-elevated border border-elevatedBorder text-mutedClay hover:text-warmCream transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Modal Body: Ticket Tier Cards */}
+            <div className="p-5 sm:p-6 overflow-y-auto space-y-4">
+              {bookingSuccess ? (
+                <div className="bg-darkRoast border border-clayBrown rounded-xl p-6 text-center space-y-4 animate-fadeIn">
+                  <div className="w-12 h-12 bg-terracotta/20 border border-terracotta text-terracotta rounded-full flex items-center justify-center mx-auto">
+                    <Check className="w-6 h-6 text-softButter" />
+                  </div>
+                  <div>
+                    <h4 className="font-serif font-bold text-xl text-softButter">
+                      Booking Confirmed!
+                    </h4>
+                    <p className="text-xs text-mutedClay mt-1">
+                      Your booking reference is <strong className="text-softButter font-mono">{bookingSuccess.ref}</strong>
+                    </p>
+                  </div>
+                  <div className="bg-elevated p-4 rounded-lg border border-elevatedBorder text-xs text-left space-y-2">
+                    <div className="flex justify-between">
+                      <span className="text-mutedClay">Event:</span>
+                      <span className="text-softButter font-semibold">{bookingSuccess.eventTitle}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-mutedClay">Pass Type:</span>
+                      <span className="text-warmCream">{bookingSuccess.tierName} ({bookingSuccess.count} Guest)</span>
+                    </div>
+                    <div className="flex justify-between border-t border-elevatedBorder pt-2">
+                      <span className="text-mutedClay">Amount Paid:</span>
+                      <span className="text-softButter font-mono font-bold">₹{bookingSuccess.total.toLocaleString('en-IN')}</span>
+                    </div>
+                  </div>
+                  <p className="text-[11px] text-mutedClay">
+                    ✓ E-ticket with QR code sent via WhatsApp & Email. No printouts needed!
+                  </p>
+                  <Button
+                    variant="primary"
+                    size="sm"
+                    className="w-full"
+                    onClick={() => setActiveEvent(null)}
+                  >
+                    Done & Return to Events
+                  </Button>
+                </div>
+              ) : (
+                <>
+                  <div className="flex items-center justify-between">
+                    <h4 className="font-serif text-sm uppercase tracking-wider text-softButter font-semibold">
+                      Select Tickets
+                    </h4>
+                    <span className="text-xs text-mutedClay">All prices inclusive of taxes</span>
+                  </div>
+
+                  <div className="grid grid-cols-1 gap-4">
+                    {activeEvent.ticketTypes.map((tier) => (
+                      <TicketTierCard
+                        key={tier.name}
+                        tier={tier}
+                        quantity={selectedTiers[tier.name] || 0}
+                        onQuantityChange={(qty) => handleTierQuantityChange(tier.name, qty)}
+                      />
+                    ))}
+                  </div>
+                </>
+              )}
+            </div>
+
+            {/* Modal Footer: Total & Checkout Button */}
+            {!bookingSuccess && (
+              <div className="p-5 sm:p-6 border-t border-elevatedBorder bg-darkRoast/90 flex items-center justify-between">
+                <div>
+                  <span className="text-[11px] font-mono uppercase text-mutedClay block">
+                    Total Amount ({totalTicketsCount} Tickets)
+                  </span>
+                  <span className="font-mono font-bold text-2xl text-softButter">
+                    ₹{totalAmount.toLocaleString('en-IN')}
+                  </span>
+                </div>
+
+                <div className="flex items-center gap-3">
+                  <Button variant="ghost" size="md" onClick={() => setActiveEvent(null)}>
+                    Cancel
+                  </Button>
+                  <Button
+                    variant="primary"
+                    size="md"
+                    disabled={totalTicketsCount === 0}
+                    onClick={handleConfirmBooking}
+                    icon={<Ticket className="w-4 h-4" />}
+                  >
+                    Confirm & Book
+                  </Button>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* FAQ / Platform Value Section (Standard Ticketing Queries) */}
+      <section className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 mt-12">
+        <div className="text-center space-y-3 mb-10">
+          <Badge variant="butter" size="sm">
+            Help & Guidelines
+          </Badge>
+          <h2 className="text-3xl font-serif font-black text-softButter">
+            Got Questions? We’ve Got You Covered.
+          </h2>
+          <p className="text-xs sm:text-sm text-mutedClay max-w-lg mx-auto">
+            Everything you need to know about booking, instant digital ticket delivery, and venue entry check-in.
+          </p>
+        </div>
+
+        <AccordionGallery />
+      </section>
+    </div>
+  );
+}
