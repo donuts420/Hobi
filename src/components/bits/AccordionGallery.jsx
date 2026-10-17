@@ -4,7 +4,28 @@ import { ChevronDown, Ticket, RefreshCw, QrCode, Sparkles } from 'lucide-react';
 /**
  * AccordionGallery component displays collapsible FAQs and platform value queries.
  */
-export default function AccordionGallery({ items = [] }) {
+export default function AccordionGallery({ items = [], photos }) {
+  const [activePhoto, setActivePhoto] = useState(0);
+  if (photos?.length) {
+    return (
+      <div className="flex h-56 sm:h-72 w-full gap-2 overflow-hidden rounded-xl">
+        {photos.map((photo, index) => (
+          <button
+            key={photo.src}
+            type="button"
+            aria-label={`Show event photo ${index + 1}`}
+            aria-pressed={activePhoto === index}
+            onClick={() => setActivePhoto(index)}
+            className={`relative min-w-0 overflow-hidden rounded-lg transition-[flex] duration-500 ${activePhoto === index ? 'flex-[5]' : 'flex-1'}`}
+          >
+            <img src={photo.src} alt={photo.alt} className="absolute inset-0 h-full w-full object-cover" />
+            <span className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent" />
+            <span className="absolute bottom-3 left-3 text-left text-sm font-semibold text-white">{photo.alt}</span>
+          </button>
+        ))}
+      </div>
+    );
+  }
   const defaultItems = [
     {
       id: 'delivery',

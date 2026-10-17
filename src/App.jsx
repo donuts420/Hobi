@@ -10,6 +10,7 @@ export default function App() {
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [searchQuery, setSearchQuery] = useState('');
   const [authModalOpen, setAuthModalOpen] = useState(false);
+  const [authDefaultTab, setAuthDefaultTab] = useState('login');
   const [currentUser, setCurrentUser] = useState(null);
 
   const handleNavigate = (route) => {
@@ -36,7 +37,14 @@ export default function App() {
         searchQuery={searchQuery}
         onSearchChange={setSearchQuery}
         onSelectCategory={handleCategorySelect}
-        onSignInClick={() => setAuthModalOpen(true)}
+        onSignInClick={() => {
+          setAuthDefaultTab('login');
+          setAuthModalOpen(true);
+        }}
+        onHostEventClick={() => {
+          setAuthDefaultTab('signup');
+          setAuthModalOpen(true);
+        }}
         currentUser={currentUser}
         onSignOut={() => {
           setCurrentUser(null);
@@ -58,11 +66,15 @@ export default function App() {
       </main>
 
       {/* Global Theme Footer */}
-      <Footer />
+      <Footer onHostEventClick={() => {
+        setAuthDefaultTab('signup');
+        setAuthModalOpen(true);
+      }} />
 
       {/* JWT-Ready Sign In & Registration Modal */}
       <AuthModal
         isOpen={authModalOpen}
+        defaultTab={authDefaultTab}
         onClose={() => setAuthModalOpen(false)}
         onSuccess={(user) => {
           setCurrentUser(user);

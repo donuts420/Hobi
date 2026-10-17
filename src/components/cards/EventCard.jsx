@@ -73,7 +73,7 @@ export default function EventCard({ event, onSelect }) {
 
         {/* Rating and Action Footer */}
         <div className="pt-3 border-t border-elevatedBorder/60 flex items-center justify-between gap-2">
-          <PeekRating rating={4.9} reviewCount={450} tag="Trending" compact />
+          <PeekRating rating={event.rating ?? 4.9} reviewCount={event.reviewCount ?? 450} tag="Trending" compact />
 
           <Button
             variant="primary"

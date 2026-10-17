@@ -343,6 +343,9 @@ export default function LandingPage({
 
             {/* Modal Body: Ticket Tier Cards */}
             <div className="p-5 sm:p-6 overflow-y-auto space-y-4">
+              {!bookingSuccess && (
+                <AccordionGallery photos={activeEvent.galleryImages?.length ? activeEvent.galleryImages : [{ src: activeEvent.bannerImage, alt: activeEvent.title }]} />
+              )}
               {bookingSuccess ? (
                 <div className="bg-darkRoast border border-clayBrown rounded-xl p-6 text-center space-y-4 animate-fadeIn">
                   <div className="w-12 h-12 bg-terracotta/20 border border-terracotta text-terracotta rounded-full flex items-center justify-center mx-auto">

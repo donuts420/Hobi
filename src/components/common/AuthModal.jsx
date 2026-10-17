@@ -5,11 +5,11 @@ import {
   Lock,
   User,
   ArrowRight,
-  ShieldCheck,
   AlertCircle,
   CheckCircle2,
 } from "lucide-react";
 import Button from "./Button";
+import CodeSlots from "../bits/CodeSlots";
 import { supabase } from "../../lib/supabase";
 /**
  * AuthModal component providing a JWT / Supabase Auth ready login and sign-up form.
@@ -26,15 +26,23 @@ export default function AuthModal({
   const [password, setPassword] = useState("");
   const [fullName, setFullName] = useState("");
   const [error, setError] = useState("");
-  const [loading, setLoading] = useState(false);
   const [resetSent, setResetSent] = useState(false);
+  const [otpStep, setOtpStep] = useState(false);
+  const [otp, setOtp] = useState("");
+  const [googleLoading, setGoogleLoading] = useState(false);
 
   useEffect(() => {
     if (isOpen) {
       setError("");
       setResetSent(false);
+      setOtpStep(false);
+      setOtp("");
     }
   }, [isOpen, tab]);
+
+  useEffect(() => {
+    if (isOpen) setTab(defaultTab);
+  }, [isOpen, defaultTab]);
 
   // Handle Escape key
   useEffect(() => {
@@ -53,9 +61,41 @@ export default function AuthModal({
     return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val);
   };
 
+  const handleGoogleSignIn = async () => {
+    setError("");
+    setGoogleLoading(true);
+    try {
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: "google",
+        options: { redirectTo: window.location.origin },
+      });
+      if (error) setError(error.message);
+    } catch (error) {
+      setError(error.message || "Unable to connect to Google. Please try again.");
+    } finally {
+      setGoogleLoading(false);
+    }
+  };
+
   const handleSubmit = (e) => {
     e.preventDefault();
     setError("");
+
+    if (otpStep) {
+      if (otp !== "123456") {
+        setError("That code is incorrect. Use the demo code shown below.");
+        return;
+      }
+      const user = {
+        id: `usr_${Date.now()}`,
+        email: email.trim(),
+        name: fullName.trim() || email.split("@")[0],
+        token: `jwt_terratix_${btoa(email)}_${Date.now()}`,
+      };
+      if (onSuccess) onSuccess(user);
+      onClose();
+      return;
+    }
 
     // Format Validations
     if (!email.trim() || !validateEmail(email)) {
@@ -68,20 +108,7 @@ export default function AuthModal({
       return;
     }
 
-    setLoading(true);
-
-    // Mock JWT / Supabase Auth handshake simulation
-    setTimeout(() => {
-      setLoading(false);
-      const user = {
-        id: `usr_${Date.now()}`,
-        email: email.trim(),
-        name: fullName.trim() || email.split("@")[0],
-        token: `jwt_terratix_${btoa(email)}_${Date.now()}`,
-      };
-      if (onSuccess) onSuccess(user);
-      onClose();
-    }, 600);
+    setOtpStep(true);
   };
 
   const handleForgotPassword = () => {
@@ -102,7 +129,7 @@ export default function AuthModal({
         if (e.target === e.currentTarget) onClose();
       }}
     >
-      <div className="bg-elevated border border-clayBrown/80 max-w-md w-full rounded-2xl shadow-dune-lg p-6 sm:p-8 relative font-serif text-warmCream">
+      <div className="bg-elevated border border-clayBrown/80 w-full max-w-[calc(100vw-2rem)] sm:max-w-md max-h-[calc(100dvh-2rem)] overflow-y-auto rounded-2xl shadow-dune-lg p-4 sm:p-6 md:p-8 relative font-serif text-warmCream">
         {/* Close Button */}
         <button
           type="button"
@@ -174,8 +201,35 @@ export default function AuthModal({
           </div>
         )}
 
+        <button
+          type="button"
+          onClick={handleGoogleSignIn}
+          disabled={googleLoading}
+          className="w-full flex items-center justify-center gap-3 rounded-lg border border-elevatedBorder bg-darkRoast px-3 py-2.5 text-xs text-warmCream hover:border-terracotta disabled:opacity-60 transition-colors"
+        >
+          <svg aria-hidden="true" viewBox="0 0 48 48" className="w-4 h-4">
+            <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5Z" transform="translate(0 4)" />
+            <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.93c-.58 2.96-2.25 5.48-4.72 7.18l7.62 5.91c4.45-4.11 7.15-10.16 7.15-17.56Z" />
+            <path fill="#FBBC05" d="M10.53 28.59a14.4 14.4 0 0 1 0-9.18l-7.98-6.19a23.9 23.9 0 0 0 0 21.56l7.98-6.19Z" transform="translate(0 4)" />
+            <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.9-5.89l-7.62-5.91c-2.12 1.42-4.84 2.27-8.28 2.27-6.26 0-11.57-4.22-13.46-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48Z" />
+          </svg>
+          {googleLoading ? "Connecting to Google…" : "Continue with Google"}
+        </button>
+        <div className="flex items-center gap-3 my-4 text-[10px] uppercase tracking-wider text-mutedClay">
+          <span className="h-px flex-1 bg-elevatedBorder" />
+          <span>or with email</span>
+          <span className="h-px flex-1 bg-elevatedBorder" />
+        </div>
+
         {/* Form */}
         <form onSubmit={handleSubmit} className="space-y-4">
+          {otpStep ? (
+            <div className="space-y-4 text-center">
+              <p className="text-sm text-mutedClay">Enter the verification code for <strong className="text-warmCream">{email}</strong></p>
+              <CodeSlots value={otp} onChange={setOtp} label="EMAIL VERIFICATION CODE" copyable={false} />
+              <p className="text-xs text-mutedClay">Demo code: <code className="text-softButter">123456</code></p>
+            </div>
+          ) : <>
           {tab === "signup" && (
             <div>
               <label className="block text-xs uppercase font-mono tracking-wider text-mutedClay mb-1.5">
@@ -239,17 +293,18 @@ export default function AuthModal({
               <Lock className="w-4 h-4 text-mutedClay absolute left-3 top-3 pointer-events-none" />
             </div>
           </div>
+          </>}
 
           <Button
             variant="primary"
             size="md"
             type="submit"
-            disabled={loading}
+            disabled={otpStep && otp.length !== 6}
             className="w-full mt-2"
             icon={<ArrowRight className="w-4 h-4" />}
           >
-            {loading
-              ? "Authenticating..."
+            {otpStep
+              ? "Verify Code"
               : tab === "login"
                 ? "Sign In"
                 : "Create Free Account"}
@@ -282,11 +337,6 @@ export default function AuthModal({
           </div>
         </form>
 
-        {/* Security Trust Badge */}
-        <div className="mt-6 pt-4 border-t border-elevatedBorder flex items-center justify-center gap-2 text-[11px] text-mutedClay/80">
-          <ShieldCheck className="w-3.5 h-3.5 text-terracotta" />
-          <span>JWT-encrypted authentication • No spam guarantee</span>
-        </div>
       </div>
     </div>
   );
