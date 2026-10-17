@@ -19,24 +19,29 @@ export default function AuthModal({
   isOpen,
   onClose,
   onSuccess,
+  recoveryMode = false,
+  onRecoveryComplete,
   defaultTab = "login", // 'login' | 'signup'
 }) {
   const [tab, setTab] = useState(defaultTab);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [fullName, setFullName] = useState("");
   const [error, setError] = useState("");
-  const [resetSent, setResetSent] = useState(false);
+  const [statusMessage, setStatusMessage] = useState("");
   const [otpStep, setOtpStep] = useState(false);
   const [otp, setOtp] = useState("");
-  const [googleLoading, setGoogleLoading] = useState(false);
+  const [challengeId, setChallengeId] = useState("");
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     if (isOpen) {
       setError("");
-      setResetSent(false);
+      setStatusMessage("");
       setOtpStep(false);
       setOtp("");
+      setChallengeId("");
     }
   }, [isOpen, tab]);
 
@@ -61,43 +66,11 @@ export default function AuthModal({
     return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val);
   };
 
-  const handleGoogleSignIn = async () => {
-    setError("");
-    setGoogleLoading(true);
-    try {
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider: "google",
-        options: { redirectTo: window.location.origin },
-      });
-      if (error) setError(error.message);
-    } catch (error) {
-      setError(error.message || "Unable to connect to Google. Please try again.");
-    } finally {
-      setGoogleLoading(false);
-    }
-  };
-
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
+    setStatusMessage("");
 
-    if (otpStep) {
-      if (otp !== "123456") {
-        setError("That code is incorrect. Use the demo code shown below.");
-        return;
-      }
-      const user = {
-        id: `usr_${Date.now()}`,
-        email: email.trim(),
-        name: fullName.trim() || email.split("@")[0],
-        token: `jwt_terratix_${btoa(email)}_${Date.now()}`,
-      };
-      if (onSuccess) onSuccess(user);
-      onClose();
-      return;
-    }
-
-    // Format Validations
     if (!email.trim() || !validateEmail(email)) {
       setError("Please provide a valid email address (e.g., name@domain.com).");
       return;
@@ -108,18 +81,135 @@ export default function AuthModal({
       return;
     }
 
-    setOtpStep(true);
+    setLoading(true);
+    try {
+      if (tab === "signup") {
+        const { data, error } = await supabase.auth.signUp({
+          email: email.trim().toLowerCase(),
+          password,
+          options: {
+            data: { full_name: fullName.trim() },
+            emailRedirectTo: window.location.origin,
+          },
+        });
+        if (error) throw error;
+
+        if (data.session) {
+          onSuccess?.({
+            id: data.user.id,
+            email: data.user.email,
+            name: data.user.user_metadata?.full_name || data.user.email.split("@")[0],
+          });
+          onClose();
+          return;
+        }
+
+        setStatusMessage("Account created. Check your email and follow the confirmation link before signing in.");
+        return;
+      }
+
+      if (otpStep) {
+        if (!/^\d{6}$/.test(otp)) {
+          setError("Enter the six-digit code from your email.");
+          return;
+        }
+
+        const { data, error } = await supabase.functions.invoke("login-email-otp", {
+          body: {
+            action: "verify",
+            email: email.trim().toLowerCase(),
+            password,
+            challengeId,
+            code: otp,
+          },
+        });
+        if (error || !data?.access_token || !data?.refresh_token) {
+          setError("That code is incorrect or expired. Check the code and try again.");
+          return;
+        }
+
+        const { data: sessionData, error: sessionError } = await supabase.auth.setSession({
+          access_token: data.access_token,
+          refresh_token: data.refresh_token,
+        });
+        if (sessionError) throw sessionError;
+        const user = sessionData.user;
+        onSuccess?.({
+          id: user.id,
+          email: user.email,
+          name: user.user_metadata?.full_name || user.email.split("@")[0],
+        });
+        onClose();
+        return;
+      }
+
+      const { data, error } = await supabase.functions.invoke("login-email-otp", {
+        body: {
+          action: "request",
+          email: email.trim().toLowerCase(),
+          password,
+        },
+      });
+      if (error || !data?.challengeId) {
+        setError("Unable to start sign-in. Please try again.");
+        return;
+      }
+      setChallengeId(data.challengeId);
+      setOtpStep(true);
+      setStatusMessage(`If the sign-in details are valid, a six-digit code was sent to ${email.trim()}.`);
+    } catch (error) {
+      setError(error.message || "Unable to complete this request. Please try again.");
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleForgotPassword = () => {
+  const handleForgotPassword = async () => {
+    setError("");
+    setStatusMessage("");
     if (!email.trim() || !validateEmail(email)) {
       setError(
         "Please enter your email address above to receive a reset link.",
       );
       return;
     }
+
+    setLoading(true);
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(
+        email.trim().toLowerCase(),
+        { redirectTo: `${window.location.origin}/` },
+      );
+      if (error) throw error;
+      setStatusMessage("If an account exists for that email, a password reset link has been sent.");
+    } catch (error) {
+      setError(error.message || "Unable to send a reset link. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handlePasswordUpdate = async (e) => {
+    e.preventDefault();
     setError("");
-    setResetSent(true);
+    setStatusMessage("");
+    if (password.length < 6) return setError("Password must be at least 6 characters in length.");
+    if (password !== confirmPassword) return setError("The passwords do not match.");
+
+    setLoading(true);
+    try {
+      const { error } = await supabase.auth.updateUser({ password });
+      if (error) throw error;
+      setPassword("");
+      setConfirmPassword("");
+      setStatusMessage("Your password has been updated.");
+      onRecoveryComplete?.();
+      onClose();
+    } catch (error) {
+      setError(error.message || "Unable to update your password. Please try again.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -148,17 +238,19 @@ export default function AuthModal({
             </span>
           </div>
           <h3 className="font-serif font-black text-2xl text-softButter">
-            {tab === "login" ? "Sign in to TerraTix" : "Create an Account"}
+            {recoveryMode ? "Set a New Password" : tab === "login" ? "Sign in to TerraTix" : "Create an Account"}
           </h3>
           <p className="text-xs text-mutedClay max-w-xs mx-auto">
-            {tab === "login"
+            {recoveryMode
+              ? "Choose a new password for your account."
+              : tab === "login"
               ? "Access your tickets, manage bookings, and enjoy express checkout."
               : "Join thousands of eventgoers discovering premier live experiences."}
           </p>
         </div>
 
         {/* Tab Toggle */}
-        <div className="flex bg-darkRoast p-1 rounded-lg border border-elevatedBorder mb-5">
+        {!recoveryMode && <div className="flex bg-darkRoast p-1 rounded-lg border border-elevatedBorder mb-5">
           <button
             type="button"
             onClick={() => setTab("login")}
@@ -181,7 +273,7 @@ export default function AuthModal({
           >
             New Account
           </button>
-        </div>
+        </div>}
 
         {/* Validation / Status Messages */}
         {error && (
@@ -191,43 +283,33 @@ export default function AuthModal({
           </div>
         )}
 
-        {resetSent && (
+        {statusMessage && (
           <div className="flex items-start gap-2 p-3 mb-4 rounded-lg bg-softButter/15 border border-softButter/30 text-xs text-softButter">
             <CheckCircle2 className="w-4 h-4 text-softButter shrink-0 mt-0.5" />
-            <span>
-              Password reset instructions sent to <strong>{email}</strong>.
-              Check your inbox.
-            </span>
+            <span>{statusMessage}</span>
           </div>
         )}
 
-        <button
-          type="button"
-          onClick={handleGoogleSignIn}
-          disabled={googleLoading}
-          className="w-full flex items-center justify-center gap-3 rounded-lg border border-elevatedBorder bg-darkRoast px-3 py-2.5 text-xs text-warmCream hover:border-terracotta disabled:opacity-60 transition-colors"
-        >
-          <svg aria-hidden="true" viewBox="0 0 48 48" className="w-4 h-4">
-            <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5Z" transform="translate(0 4)" />
-            <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.93c-.58 2.96-2.25 5.48-4.72 7.18l7.62 5.91c4.45-4.11 7.15-10.16 7.15-17.56Z" />
-            <path fill="#FBBC05" d="M10.53 28.59a14.4 14.4 0 0 1 0-9.18l-7.98-6.19a23.9 23.9 0 0 0 0 21.56l7.98-6.19Z" transform="translate(0 4)" />
-            <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.9-5.89l-7.62-5.91c-2.12 1.42-4.84 2.27-8.28 2.27-6.26 0-11.57-4.22-13.46-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48Z" />
-          </svg>
-          {googleLoading ? "Connecting to Google…" : "Continue with Google"}
-        </button>
-        <div className="flex items-center gap-3 my-4 text-[10px] uppercase tracking-wider text-mutedClay">
-          <span className="h-px flex-1 bg-elevatedBorder" />
-          <span>or with email</span>
-          <span className="h-px flex-1 bg-elevatedBorder" />
-        </div>
-
         {/* Form */}
-        <form onSubmit={handleSubmit} className="space-y-4">
-          {otpStep ? (
+        <form onSubmit={recoveryMode ? handlePasswordUpdate : handleSubmit} className="space-y-4">
+          {recoveryMode ? (
+            <>
+              <div>
+                <label className="block text-xs uppercase font-mono tracking-wider text-mutedClay mb-1.5">New Password</label>
+                <input type="password" required minLength={6} autoComplete="new-password" value={password} onChange={(e) => setPassword(e.target.value)} className="w-full bg-darkRoast border border-elevatedBorder focus:border-terracotta rounded-lg px-3 py-2.5 text-xs text-warmCream focus:outline-none" />
+              </div>
+              <div>
+                <label className="block text-xs uppercase font-mono tracking-wider text-mutedClay mb-1.5">Confirm New Password</label>
+                <input type="password" required minLength={6} autoComplete="new-password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} className="w-full bg-darkRoast border border-elevatedBorder focus:border-terracotta rounded-lg px-3 py-2.5 text-xs text-warmCream focus:outline-none" />
+              </div>
+            </>
+          ) : otpStep ? (
             <div className="space-y-4 text-center">
               <p className="text-sm text-mutedClay">Enter the verification code for <strong className="text-warmCream">{email}</strong></p>
               <CodeSlots value={otp} onChange={setOtp} label="EMAIL VERIFICATION CODE" copyable={false} />
-              <p className="text-xs text-mutedClay">Demo code: <code className="text-softButter">123456</code></p>
+              <button type="button" onClick={() => { setOtpStep(false); setOtp(""); setChallengeId(""); setStatusMessage(""); }} className="text-xs text-softButter hover:underline">
+                Back to sign in
+              </button>
             </div>
           ) : <>
           {tab === "signup" && (
@@ -274,6 +356,7 @@ export default function AuthModal({
                 <button
                   type="button"
                   onClick={handleForgotPassword}
+                  disabled={loading}
                   className="text-[11px] text-softButter hover:text-terracotta hover:underline transition-colors"
                 >
                   Forgot Password?
@@ -299,11 +382,11 @@ export default function AuthModal({
             variant="primary"
             size="md"
             type="submit"
-            disabled={otpStep && otp.length !== 6}
+            disabled={loading}
             className="w-full mt-2"
             icon={<ArrowRight className="w-4 h-4" />}
           >
-            {otpStep
+            {loading ? "Please wait…" : recoveryMode ? "Update Password" : otpStep
               ? "Verify Code"
               : tab === "login"
                 ? "Sign In"

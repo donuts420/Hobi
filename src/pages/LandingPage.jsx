@@ -6,6 +6,7 @@ import MarqueeStrip from '../components/bits/MarqueeStrip';
 import EventCard from '../components/cards/EventCard';
 import TicketTierCard from '../components/cards/TicketTierCard';
 import AccordionGallery from '../components/bits/AccordionGallery';
+import { supabase } from '../lib/supabase';
 
 export default function LandingPage({
   selectedCity = 'Jaipur',
@@ -23,21 +24,48 @@ export default function LandingPage({
   const [selectedTiers, setSelectedTiers] = useState({});
   const [bookingSuccess, setBookingSuccess] = useState(null);
 
-  // Load static mock events
+  // Load published events and their ticket tiers from Supabase.
   useEffect(() => {
-    fetch('/mock/events.json')
-      .then((res) => {
-        if (!res.ok) throw new Error('Failed to load events');
-        return res.json();
-      })
-      .then((data) => {
-        setEvents(data);
+    let cancelled = false;
+
+    async function loadEvents() {
+      const { data, error } = await supabase
+        .from('events')
+        .select('id, title, category, description, starts_at, venue, city, banner_image_url, rating, review_count, ticket_types(name, price_inr, available_quantity, perks)')
+        .eq('status', 'published')
+        .order('starts_at');
+
+      if (cancelled) return;
+      if (error) {
+        console.error('Could not load events from Supabase:', error.message);
         setLoading(false);
-      })
-      .catch((err) => {
-        console.warn('Fallback loading mock data locally:', err);
-        setLoading(false);
-      });
+        return;
+      }
+
+      setEvents(data.map((event) => {
+        const ticketTypes = event.ticket_types || [];
+        const startsAt = new Date(event.starts_at);
+        return {
+          ...event,
+          date: startsAt.toLocaleDateString(),
+          time: startsAt.toLocaleTimeString(),
+          priceStartingFrom: ticketTypes.length
+            ? Math.min(...ticketTypes.map((tier) => Number(tier.price_inr)))
+            : 0,
+          bannerImage: event.banner_image_url,
+          reviewCount: event.review_count,
+          ticketTypes: ticketTypes.map((tier) => ({
+            ...tier,
+            price: Number(tier.price_inr),
+            availableQuantity: tier.available_quantity,
+          })),
+        };
+      }));
+      setLoading(false);
+    }
+
+    loadEvents();
+    return () => { cancelled = true; };
   }, []);
 
   const categories = [
