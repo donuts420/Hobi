@@ -7,7 +7,7 @@ import { supabase } from './lib/supabase';
 
 export default function App() {
   const [currentRoute, setCurrentRoute] = useState('events');
-  const [selectedCity, setSelectedCity] = useState('Jaipur');
+  const [selectedCity, setSelectedCity] = useState('Delhi NCR');
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [searchQuery, setSearchQuery] = useState('');
   const [authModalOpen, setAuthModalOpen] = useState(false);
@@ -38,7 +38,7 @@ export default function App() {
 
   const handleNavigate = (route) => {
     setCurrentRoute(route);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    document.getElementById('main-scroll-container')?.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const handleCategorySelect = (category) => {
@@ -49,7 +49,7 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen bg-darkRoast text-warmCream font-serif flex flex-col selection:bg-terracotta selection:text-softButter select-none">
+    <div className="h-dvh overflow-hidden bg-darkRoast text-warmCream font-serif flex flex-col selection:bg-terracotta selection:text-softButter select-none">
       {/* Top Navbar with Clean Links, Categories Mega-Menu, Location Modal, and JWT-ready Login */}
       <Navbar
         selectedCity={selectedCity}
@@ -73,7 +73,7 @@ export default function App() {
       />
 
       {/* Main Dynamic View Area */}
-      <main className="flex-1">
+      <main id="main-scroll-container" className="flex-1 min-h-0 overflow-y-auto overscroll-y-contain">
         <AppRoutes
           currentRoute={currentRoute}
           onNavigate={handleNavigate}
@@ -83,13 +83,11 @@ export default function App() {
           selectedCategory={selectedCategory}
           onSelectCategory={setSelectedCategory}
         />
+        <Footer onHostEventClick={() => {
+          setAuthDefaultTab('signup');
+          setAuthModalOpen(true);
+        }} />
       </main>
-
-      {/* Global Theme Footer */}
-      <Footer onHostEventClick={() => {
-        setAuthDefaultTab('signup');
-        setAuthModalOpen(true);
-      }} />
 
       {/* JWT-Ready Sign In & Registration Modal */}
       <AuthModal
