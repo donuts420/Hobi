@@ -1,15 +1,16 @@
 import React, { useState, useEffect } from 'react';
-import { Sparkles, Compass, Filter, ArrowRight, ShieldCheck, Ticket, Calendar, X, Check, MapPin, TrendingUp, Flame, Star } from 'lucide-react';
+import { Sparkles, Compass, Filter, ShieldCheck, Ticket, Calendar, X, Check, MapPin, TrendingUp, Flame, ArrowRight } from 'lucide-react';
 import Button from '../components/common/Button';
 import Badge from '../components/common/Badge';
 import MarqueeStrip from '../components/bits/MarqueeStrip';
 import EventCard from '../components/cards/EventCard';
 import TicketTierCard from '../components/cards/TicketTierCard';
-import AccordionGallery from '../components/bits/AccordionGallery';
+import DepthCarousel from '../components/bits/DepthCarousel';
+import FaqAccordion from '../components/bits/FaqAccordion';
 import { supabase } from '../lib/supabase';
 
 export default function LandingPage({
-  selectedCity = 'Jaipur',
+  selectedCity = 'Delhi NCR',
   onSelectCity,
   searchQuery = '',
   selectedCategory: propCategory,
@@ -23,6 +24,7 @@ export default function LandingPage({
   const [activeEvent, setActiveEvent] = useState(null);
   const [selectedTiers, setSelectedTiers] = useState({});
   const [bookingSuccess, setBookingSuccess] = useState(null);
+  const [activeSpotlightIndex, setActiveSpotlightIndex] = useState(0);
 
   // Load published events and their ticket tiers from Supabase.
   useEffect(() => {
@@ -58,6 +60,7 @@ export default function LandingPage({
             ...tier,
             price: Number(tier.price_inr),
             availableQuantity: tier.available_quantity,
+            perks: Array.isArray(tier.perks) ? tier.perks : [],
           })),
         };
       }));
@@ -99,8 +102,7 @@ export default function LandingPage({
     return matchesCategory && matchesCity && matchesSearch;
   });
 
-  // Spotlight trending events (first 3)
-  const spotlightEvents = events.slice(0, 3);
+  const spotlightEvent = events[activeSpotlightIndex] || events[0];
 
   const handleSelectEvent = (event) => {
     setActiveEvent(event);
@@ -233,7 +235,7 @@ export default function LandingPage({
               <span>Trending Spotlight</span>
             </div>
             <h2 className="text-2xl sm:text-3xl font-black text-softButter">
-              Top Picks This Weekend
+              Explore Events
             </h2>
           </div>
           <span className="hidden sm:inline-block text-xs text-mutedClay">
@@ -241,53 +243,44 @@ export default function LandingPage({
           </span>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {spotlightEvents.map((item, idx) => (
-            <div
-              key={item.id}
-              onClick={() => handleSelectEvent(item)}
-              className="group cursor-pointer bg-elevated border border-elevatedBorder hover:border-clayBrown rounded-xl overflow-hidden shadow-dune-sm hover:shadow-dune-md transition-all duration-300 flex flex-col justify-between"
-            >
-              <div className="relative aspect-[16/9] overflow-hidden">
-                <img
-                  src={item.bannerImage}
-                  alt={item.title}
-                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                />
-                <div className="absolute top-2.5 left-2.5">
-                  <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[10px] uppercase font-mono tracking-wider bg-black/75 backdrop-blur-md text-softButter border border-white/10 font-medium">
-                    <Star className="w-2.5 h-2.5 text-softButter fill-softButter" />
-                    {idx === 0 ? 'Selling Fast' : idx === 1 ? 'Weekend Hit' : 'Trending'}
-                  </span>
-                </div>
-                <div className="absolute bottom-2.5 right-2.5 bg-darkRoast/90 backdrop-blur-md px-2.5 py-1 rounded text-xs font-mono font-bold text-softButter border border-elevatedBorder">
-                  From ₹{item.priceStartingFrom.toLocaleString('en-IN')}
-                </div>
-              </div>
-
-              <div className="p-4 space-y-2 flex-1 flex flex-col justify-between">
-                <div>
-                  <div className="text-[11px] text-terracotta font-medium mb-1">
-                    {item.date} • {item.city}
-                  </div>
-                  <h3 className="font-serif font-bold text-base text-warmCream group-hover:text-softButter transition-colors line-clamp-1">
-                    {item.title}
-                  </h3>
-                  <p className="text-xs text-mutedClay line-clamp-2 mt-1">
-                    {item.venue}
-                  </p>
-                </div>
-
-                <div className="pt-3 border-t border-elevatedBorder/60 flex items-center justify-between text-xs">
-                  <span className="text-mutedClay">{item.category}</span>
-                  <span className="text-softButter group-hover:text-terracotta transition-colors font-medium flex items-center gap-1">
-                    Book Tickets <ArrowRight className="w-3.5 h-3.5" />
-                  </span>
-                </div>
-              </div>
+        {loading ? <p className="py-12 text-center text-sm text-mutedClay">Loading events...</p> : events.length > 0 && <>
+          <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_300px] items-center gap-6 lg:gap-10">
+          <div className="h-[360px] sm:h-[400px] relative">
+            <DepthCarousel
+              items={events.map((event) => ({ image: event.bannerImage, alt: event.title }))}
+              cardWidth={340}
+              cardHeight={360}
+              radius={18}
+              tint="#181210"
+              depth={150}
+              spread={60}
+              tilt={16}
+              visibleCards={4}
+              falloff={0.18}
+              blur={4}
+              autoplay={false}
+              loop
+              onChange={setActiveSpotlightIndex}
+            />
+          </div>
+          {spotlightEvent && <div className="bg-elevated border border-elevatedBorder rounded-xl p-5 sm:p-6 shadow-dune-md space-y-4">
+            <Badge variant="terracotta" size="sm">{spotlightEvent.category}</Badge>
+            <div>
+              <p className="text-xs font-mono text-terracotta mb-1">{spotlightEvent.date} · {spotlightEvent.city}</p>
+              <h3 className="text-xl font-bold text-softButter">{spotlightEvent.title}</h3>
+              <p className="text-sm text-mutedClay mt-2">{spotlightEvent.venue}</p>
             </div>
-          ))}
-        </div>
+            {spotlightEvent.description && <p className="text-xs text-warmCream/80 line-clamp-3">{spotlightEvent.description}</p>}
+            <div className="flex items-center justify-between border-t border-elevatedBorder pt-4">
+              <span className="font-mono text-sm text-softButter">From ₹{spotlightEvent.priceStartingFrom.toLocaleString('en-IN')}</span>
+              <Button variant="primary" size="sm" onClick={() => handleSelectEvent(spotlightEvent)} icon={<ArrowRight className="w-4 h-4" />}>
+                View Tickets
+              </Button>
+            </div>
+          </div>}
+          </div>
+        </>}
+
       </section>
 
       {/* Main Events Catalogue Grid */}
@@ -344,15 +337,15 @@ export default function LandingPage({
 
       {/* Interactive Booking Drawer / Modal */}
       {activeEvent && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-darkRoast/85 backdrop-blur-md animate-fadeIn">
-          <div className="bg-elevated border border-clayBrown max-w-2xl w-full rounded-2xl shadow-dune-lg overflow-hidden max-h-[90vh] flex flex-col">
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-darkRoast/85 backdrop-blur-md animate-fadeIn">
+          <div role="dialog" aria-modal="true" aria-labelledby="booking-event-title" className="bg-elevated border border-clayBrown max-w-2xl w-full rounded-2xl shadow-dune-lg overflow-hidden max-h-[90vh] flex flex-col">
             {/* Modal Header */}
             <div className="p-5 sm:p-6 border-b border-elevatedBorder flex items-start justify-between bg-darkRoast/80">
               <div className="space-y-1">
                 <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[10px] font-mono uppercase bg-black/60 text-softButter border border-white/10">
                   {activeEvent.category}
                 </span>
-                <h3 className="font-serif font-bold text-xl sm:text-2xl text-softButter">
+                <h3 id="booking-event-title" className="font-serif font-bold text-xl sm:text-2xl text-softButter">
                   {activeEvent.title}
                 </h3>
                 <p className="text-xs text-mutedClay flex items-center gap-1.5">
@@ -372,7 +365,19 @@ export default function LandingPage({
             {/* Modal Body: Ticket Tier Cards */}
             <div className="p-5 sm:p-6 overflow-y-auto space-y-4">
               {!bookingSuccess && (
-                <AccordionGallery photos={activeEvent.galleryImages?.length ? activeEvent.galleryImages : [{ src: activeEvent.bannerImage, alt: activeEvent.title }]} />
+                <AccordionGallery
+                  items={(Array.isArray(activeEvent.galleryImages) && activeEvent.galleryImages.length ? activeEvent.galleryImages : [{ src: activeEvent.bannerImage, alt: activeEvent.title }]).map((photo) => ({
+                    image: photo.image || photo.src,
+                    label: photo.label || photo.alt || activeEvent.title,
+                    alt: photo.alt || activeEvent.title,
+                  }))}
+                  accentColor="#D36135"
+                  overlayColor="#181210"
+                  textColor="#FFF1A6"
+                  height={220}
+                  defaultIndex={0}
+                  trigger="click"
+                />
               )}
               {bookingSuccess ? (
                 <div className="bg-darkRoast border border-clayBrown rounded-xl p-6 text-center space-y-4 animate-fadeIn">
@@ -423,14 +428,14 @@ export default function LandingPage({
                   </div>
 
                   <div className="grid grid-cols-1 gap-4">
-                    {activeEvent.ticketTypes.map((tier) => (
+                    {(activeEvent.ticketTypes || []).length ? activeEvent.ticketTypes.map((tier) => (
                       <TicketTierCard
                         key={tier.name}
                         tier={tier}
                         quantity={selectedTiers[tier.name] || 0}
                         onQuantityChange={(qty) => handleTierQuantityChange(tier.name, qty)}
                       />
-                    ))}
+                    )) : <p className="rounded-lg border border-elevatedBorder bg-darkRoast/60 p-4 text-sm text-mutedClay">Ticket pricing is not available for this event yet.</p>}
                   </div>
                 </>
               )}
@@ -482,7 +487,7 @@ export default function LandingPage({
           </p>
         </div>
 
-        <AccordionGallery />
+        <FaqAccordion />
       </section>
     </div>
   );

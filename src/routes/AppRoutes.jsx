@@ -12,7 +12,7 @@ import { ArrowLeft, Ticket, ShieldCheck, MapPin } from 'lucide-react';
 export default function AppRoutes({
   currentRoute = 'events',
   onNavigate,
-  selectedCity = 'Jaipur',
+  selectedCity = 'Delhi NCR',
   onSelectCity,
   searchQuery = '',
   selectedCategory = 'All',

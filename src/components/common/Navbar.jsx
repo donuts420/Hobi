@@ -22,7 +22,7 @@ import {
 import Button from './Button';
 
 export default function Navbar({
-  selectedCity = 'Jaipur',
+  selectedCity = 'Delhi NCR',
   onSelectCity,
   searchQuery = '',
   onSearchChange,
@@ -178,7 +178,7 @@ export default function Navbar({
               href="/"
               onClick={(e) => {
                 e.preventDefault();
-                window.scrollTo({ top: 0, behavior: 'smooth' });
+                document.getElementById('main-scroll-container')?.scrollTo({ top: 0, behavior: 'smooth' });
               }}
               className="flex items-center gap-2.5 cursor-pointer group"
             >

@@ -1,162 +1,105 @@
-import React, { useState } from 'react';
-import { ChevronDown, Ticket, RefreshCw, QrCode, Sparkles } from 'lucide-react';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { gsap } from 'gsap';
+import './AccordionGallery.css';
 
-/**
- * AccordionGallery component displays collapsible FAQs and platform value queries.
- */
-export default function AccordionGallery({ items = [], photos }) {
-  const [activePhoto, setActivePhoto] = useState(0);
-  if (photos?.length) {
-    return (
-      <div className="flex h-56 sm:h-72 w-full gap-2 overflow-hidden rounded-xl">
-        {photos.map((photo, index) => (
-          <button
-            key={photo.src}
-            type="button"
-            aria-label={`Show event photo ${index + 1}`}
-            aria-pressed={activePhoto === index}
-            onClick={() => setActivePhoto(index)}
-            className={`relative min-w-0 overflow-hidden rounded-lg transition-[flex] duration-500 ${activePhoto === index ? 'flex-[5]' : 'flex-1'}`}
-          >
-            <img src={photo.src} alt={photo.alt} className="absolute inset-0 h-full w-full object-cover" />
-            <span className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent" />
-            <span className="absolute bottom-3 left-3 text-left text-sm font-semibold text-white">{photo.alt}</span>
-          </button>
-        ))}
-      </div>
-    );
-  }
-  const defaultItems = [
-    {
-      id: 'delivery',
-      title: 'How do I receive my booking and digital ticket?',
-      category: 'Instant Delivery',
-      icon: <Ticket className="w-4 h-4 text-terracotta" />,
-      content:
-        'Once your payment is confirmed, your digital ticket with a high-resolution entry QR code is sent immediately via WhatsApp and Email. You can also view, save, or download it anytime directly from your TerraTix account.',
-      highlights: [
-        'Instant WhatsApp & Email confirmation',
-        'Offline-ready digital QR ticket',
-        'Apple Wallet & Google Wallet pass support',
-      ],
-    },
-    {
-      id: 'transfer',
-      title: 'Can I transfer or cancel my ticket?',
-      category: 'Flexible Policies',
-      icon: <RefreshCw className="w-4 h-4 text-softButter" />,
-      content:
-        'Yes! TerraTix allows 1-click ticket transfer to your friends using their mobile number or email up to 3 hours before gates open. For cancellations and refunds, event-specific organizer policies apply as shown on the checkout screen.',
-      highlights: [
-        'Zero-fee instant ticket transfer',
-        'Transparent organizer refund window',
-        'Automated fan-to-fan resale for sold-out gigs',
-      ],
-    },
-    {
-      id: 'checkin',
-      title: 'How does venue entry check-in work?',
-      category: 'At The Gate',
-      icon: <QrCode className="w-4 h-4 text-terracotta" />,
-      content:
-        'Simply present the digital QR code on your smartphone screen at the venue gate for rapid contactless scanner check-in. No paper printouts are ever required. Gates typically open 60 to 90 minutes before showtime.',
-      highlights: [
-        'Fast contactless scanner entry',
-        '100% paperless mobile tickets',
-        'Express entry lines for VIP & early-bird passes',
-      ],
-    },
-    {
-      id: 'host',
-      title: 'How do I list and sell tickets for my own event?',
-      category: 'For Organizers',
-      icon: <Sparkles className="w-4 h-4 text-softButter" />,
-      content:
-        'Publishing your concert, standup show, club night, food festival, or workshop takes under 10 minutes. Enjoy dynamic multi-tier ticket sales, real-time attendee analytics, promo codes, and prompt automated payouts.',
-      highlights: [
-        'Self-serve 10-minute event onboarding',
-        'Transparent platform fees with no hidden costs',
-        'Direct automated bank settlement after show',
-      ],
-    },
-  ];
+const AccordionGallery = ({
+  items = [], defaultIndex = 2, accentColor = '#FFF1A6', overlayColor = '#181210',
+  textColor = '#FAF0D7', height = 460, gap = 10, radius = 16, expandRatio = 0.52,
+  orientation = 'horizontal', duration = 0.6, ease = 'power3.out', parallax = 0.5,
+  tilt = 8, stagger = 0.06, trigger = 'hover', showLabels = true, grayscale = true,
+  className = '',
+}) => {
+  const rootRef = useRef(null);
+  const panelRefs = useRef([]);
+  const mediaRefs = useRef([]);
+  const barRefs = useRef([]);
+  const textRefs = useRef([]);
+  const tlRef = useRef(null);
+  const firstRunRef = useRef(true);
+  const mediaSizeRef = useRef(320);
+  const vertical = orientation === 'vertical';
+  const count = items.length;
+  const [active, setActive] = useState(Math.min(Math.max(defaultIndex, 0), Math.max(count - 1, 0)));
+  const prefersReduced = typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
 
-  const galleryItems = items.length > 0 ? items : defaultItems;
-  const [openId, setOpenId] = useState(galleryItems[0]?.id || null);
+  const applyLayout = useCallback(animateLayout => {
+    const panels = panelRefs.current;
+    if (!panels.length) return;
+    const ratio = Math.min(Math.max(expandRatio, 0.2), 0.9);
+    const grow = count > 1 ? (ratio * (count - 1)) / (1 - ratio) : 1;
+    tlRef.current?.kill();
+    const dur = animateLayout && !prefersReduced ? duration : 0;
+    const tl = gsap.timeline();
+    panels.forEach((panel, i) => {
+      if (!panel) return;
+      const isActive = i === active;
+      const media = mediaRefs.current[i];
+      const bar = barRefs.current[i];
+      const text = textRefs.current[i];
+      const rotation = isActive ? 0 : i < active ? tilt : -tilt;
+      tl.to(panel, { flexGrow: isActive ? grow : 1, ...(vertical ? { rotateX: -rotation } : { rotateY: rotation }), duration: dur, ease }, 0);
+      if (media) {
+        const shift = Math.max(-1.5, Math.min(1.5, active - i)) * parallax * mediaSizeRef.current * 0.06;
+        tl.to(media, {
+          xPercent: -50, yPercent: -50, x: vertical || isActive ? 0 : shift,
+          y: vertical && !isActive ? shift : 0, '--ag-gray': grayscale && !isActive ? 1 : 0,
+          '--ag-dim': isActive ? 0 : 0.35, duration: dur, ease,
+        }, 0);
+      }
+      if (showLabels && bar && text) {
+        if (isActive) tl.to([bar, text], { opacity: 1, x: 0, duration: dur, ease, stagger: prefersReduced ? 0 : stagger }, 0);
+        else tl.to([bar, text], { opacity: 0, x: -14, duration: dur * 0.6, ease }, 0);
+      }
+    });
+    tlRef.current = tl;
+  }, [active, count, expandRatio, duration, ease, vertical, tilt, parallax, grayscale, showLabels, stagger, prefersReduced]);
 
-  const toggleAccordion = (id) => {
-    setOpenId(openId === id ? null : id);
+  useEffect(() => {
+    const el = rootRef.current;
+    if (!el) return;
+    const measure = () => {
+      const rect = el.getBoundingClientRect();
+      const total = vertical ? rect.height : rect.width;
+      const usable = Math.max(total - gap * (count - 1), 120);
+      const size = Math.max(140, usable * Math.min(Math.max(expandRatio, 0.2), 0.9) * 1.22);
+      mediaSizeRef.current = size;
+      el.style.setProperty('--ag-media-size', `${size}px`);
+      applyLayout(!firstRunRef.current);
+    };
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [applyLayout, gap, count, expandRatio, vertical]);
+
+  useEffect(() => {
+    applyLayout(!firstRunRef.current);
+    firstRunRef.current = false;
+  }, [applyLayout]);
+  useEffect(() => () => tlRef.current?.kill(), []);
+
+  const handleKeyDown = (index, event) => {
+    if (!count) return;
+    if (event.key === 'ArrowRight' || event.key === 'ArrowDown') { event.preventDefault(); setActive((index + 1) % count); }
+    else if (event.key === 'ArrowLeft' || event.key === 'ArrowUp') { event.preventDefault(); setActive((index - 1 + count) % count); }
   };
 
-  return (
-    <div className="w-full space-y-3 font-serif">
-      {galleryItems.map((item) => {
-        const isOpen = openId === item.id;
-        return (
-          <div
-            key={item.id}
-            className={`rounded-lg border transition-all duration-300 overflow-hidden ${
-              isOpen
-                ? 'bg-elevated border-clayBrown/70 shadow-dune-md'
-                : 'bg-elevated/60 border-elevatedBorder hover:border-elevatedBorder/80'
-            }`}
-          >
-            <button
-              type="button"
-              onClick={() => toggleAccordion(item.id)}
-              className="w-full flex items-center justify-between px-5 py-4 text-left transition-colors focus:outline-none"
-            >
-              <div className="flex items-center gap-3.5">
-                <div
-                  className={`w-9 h-9 rounded-md flex items-center justify-center transition-colors ${
-                    isOpen ? 'bg-clayBrown/40 border border-clayBrown' : 'bg-darkRoast border border-elevatedBorder'
-                  }`}
-                >
-                  {item.icon}
-                </div>
-                <div>
-                  <span className="block text-[10px] tracking-widest uppercase font-mono text-terracotta">
-                    {item.category}
-                  </span>
-                  <h4 className="text-base font-semibold text-warmCream tracking-wide">
-                    {item.title}
-                  </h4>
-                </div>
-              </div>
+  return <div ref={rootRef} className={`accordion-gallery${vertical ? ' accordion-gallery--vertical' : ''}${className ? ` ${className}` : ''}`} style={{
+    '--ag-accent': accentColor, '--ag-overlay': overlayColor, '--ag-text': textColor,
+    '--ag-gap': `${gap}px`, '--ag-radius': `${radius}px`,
+    height: vertical ? `${Math.round(height * 1.6)}px` : `${height}px`,
+  }} role="list" aria-label="Featured events">
+    {items.map((item, i) => {
+      const isActive = i === active;
+      const Tag = item.link ? 'a' : 'div';
+      return <Tag key={item.id || i} ref={el => { panelRefs.current[i] = el; }} className={`ag-panel${isActive ? ' ag-panel--active' : ''}`} style={{ borderRadius: `${radius}px` }} href={item.link || undefined} onClick={event => {
+        if (i !== active) { event.preventDefault(); setActive(i); }
+      }} onMouseEnter={() => { if (trigger === 'hover') setActive(i); }} onFocus={() => setActive(i)} onKeyDown={event => handleKeyDown(i, event)} role="listitem" tabIndex={0} aria-current={isActive ? 'true' : undefined} aria-label={item.label}>
+        <span className="ag-panel__frame"><span className="ag-panel__media" ref={el => { mediaRefs.current[i] = el; }}><img src={item.image} alt={item.alt || item.label || ''} draggable="false" /></span><span className="ag-panel__overlay" aria-hidden="true" /></span>
+        {showLabels && <span className="ag-panel__label" aria-hidden="true"><span className="ag-panel__bar" ref={el => { barRefs.current[i] = el; }} /><span className="ag-panel__text" ref={el => { textRefs.current[i] = el; }}>{item.label}</span></span>}
+      </Tag>;
+    })}
+  </div>;
+};
 
-              <div
-                className={`p-1.5 rounded-full border border-elevatedBorder text-mutedClay transition-transform duration-300 ${
-                  isOpen ? 'rotate-180 bg-clayBrown/30 text-softButter' : ''
-                }`}
-              >
-                <ChevronDown className="w-4 h-4" />
-              </div>
-            </button>
-
-            {isOpen && (
-              <div className="px-5 pb-5 pt-1 border-t border-elevatedBorder/50 space-y-3 animate-fadeIn">
-                <p className="text-sm text-warmCream/90 leading-relaxed">
-                  {item.content}
-                </p>
-
-                {item.highlights && item.highlights.length > 0 && (
-                  <div className="pt-2 grid grid-cols-1 sm:grid-cols-2 gap-2">
-                    {item.highlights.map((highlight, idx) => (
-                      <div
-                        key={idx}
-                        className="flex items-center gap-2 text-xs text-mutedClay bg-darkRoast/60 px-3 py-1.5 rounded border border-elevatedBorder/60"
-                      >
-                        <span className="w-1.5 h-1.5 rounded-full bg-terracotta" />
-                        <span>{highlight}</span>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
-        );
-      })}
-    </div>
-  );
-}
+export default AccordionGallery;
