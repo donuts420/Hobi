@@ -32,6 +32,7 @@ export default function AuthModal({
   const [statusMessage, setStatusMessage] = useState("");
   const [otpStep, setOtpStep] = useState(false);
   const [otp, setOtp] = useState("");
+  const [otpStatus, setOtpStatus] = useState("idle");
   const [challengeId, setChallengeId] = useState("");
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
@@ -42,6 +43,7 @@ export default function AuthModal({
       setStatusMessage("");
       setOtpStep(false);
       setOtp("");
+      setOtpStatus("idle");
       setChallengeId("");
     }
   }, [isOpen, tab]);
@@ -126,6 +128,7 @@ export default function AuthModal({
         });
         if (error || !data?.access_token || !data?.refresh_token) {
           setError("That code is incorrect or expired. Check the code and try again.");
+          setOtpStatus("error");
           return;
         }
 
@@ -348,7 +351,18 @@ export default function AuthModal({
           ) : otpStep ? (
             <div className="space-y-4 text-center">
               <p className="text-sm text-mutedClay">Enter the verification code for <strong className="text-warmCream">{email}</strong></p>
-              <CodeSlots value={otp} onChange={setOtp} label="EMAIL VERIFICATION CODE" copyable={false} />
+              <CodeSlots
+                value={otp}
+                onChange={(value) => { setOtp(value); setOtpStatus("idle"); }}
+                label="EMAIL VERIFICATION CODE"
+                copyable={false}
+                status={otpStatus}
+                accentColor="#FFF1A6"
+                inkColor="#FAF0D7"
+                slotColor="#181210"
+                digitColor="#181210"
+                dangerColor="#D36135"
+              />
               <button type="button" onClick={() => { setOtpStep(false); setOtp(""); setChallengeId(""); setStatusMessage(""); }} className="text-xs text-softButter hover:underline">
                 Back to sign in
               </button>
