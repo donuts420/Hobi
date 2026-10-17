@@ -1,0 +1,348 @@
+[
+  {
+    "id": "evt-prateek-kuhad-2026",
+    "title": "Prateek Kuhad — Silhouettes Acoustic India Tour",
+    "category": "Concerts & Gigs",
+    "date": "Sat, 28 Nov 2026",
+    "time": "07:00 PM onwards",
+    "venue": "Jawahar Kala Kendra Amphitheatre",
+    "city": "Jaipur",
+    "priceStartingFrom": 999,
+    "bannerImage": "https://images.unsplash.com/photo-1514525253161-7a46d19cd819?auto=format&fit=crop&w=1200&q=80",
+    "description": "Experience an enchanting winter evening with India's celebrated indie-folk troubadour performing live acoustic anthems, fan favorites, and brand new unreleased tracks under the stars.",
+    "ticketTypes": [
+      {
+        "name": "Silver Pass (Lawn)",
+        "price": 999,
+        "availableQuantity": 150,
+        "perks": [
+          "Open amphitheatre lawn entry",
+          "Dedicated beverage & food stalls access",
+          "Digital tour badge and souvenir art print"
+        ]
+      },
+      {
+        "name": "Gold Fan Pit",
+        "price": 1999,
+        "availableQuantity": 60,
+        "perks": [
+          "Reserved front amphitheatre pit zone",
+          "Priority express gate check-in",
+          "Complimentary artisan beverage token",
+          "Exclusive commemorative lanyard"
+        ]
+      },
+      {
+        "name": "VIP Backstage Circle",
+        "price": 3999,
+        "availableQuantity": 20,
+        "perks": [
+          "Elevated lounge seating with dedicated service",
+          "Meet & greet acoustic soundcheck access",
+          "Signed tour poster + limited merch pack",
+          "Designated VIP parking slip"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "evt-zakir-khan-2026",
+    "title": "Zakir Khan Live — Haq Se Single 2.0 Comedy Special",
+    "category": "Standup Comedy",
+    "date": "Sun, 06 Dec 2026",
+    "time": "06:30 PM & 09:00 PM",
+    "venue": "Shanmukhananda Hall",
+    "city": "Mumbai",
+    "priceStartingFrom": 499,
+    "bannerImage": "https://images.unsplash.com/photo-1585699324551-f6c309eedeca?auto=format&fit=crop&w=1200&q=80",
+    "description": "The Sakht Launda returns with an all-new 90-minute standup special. An evening packed with nostalgic storytelling, heart-melting relatability, and non-stop laughter.",
+    "ticketTypes": [
+      {
+        "name": "Balcony Tier",
+        "price": 499,
+        "availableQuantity": 120,
+        "perks": [
+          "Balcony tier seating",
+          "Unobstructed center stage view",
+          "Auditorium AC comfort"
+        ]
+      },
+      {
+        "name": "Ground Floor Classic",
+        "price": 999,
+        "availableQuantity": 80,
+        "perks": [
+          "Ground floor prime tier seating",
+          "Mid-hall acoustic sweet-spot",
+          "Digital booking confirmation pass"
+        ]
+      },
+      {
+        "name": "Front Row Premium",
+        "price": 1799,
+        "availableQuantity": 30,
+        "perks": [
+          "Rows A-D front proximity to the stage",
+          "Fast-track hall admission",
+          "Signed comedy tour postcard"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "evt-sunburn-goa-2026",
+    "title": "Sunburn Arena ft. Boris Brejcha & High-Tech Minimal",
+    "category": "Nightlife & Clubs",
+    "date": "Fri, 18 Dec 2026",
+    "time": "08:00 PM - 03:00 AM",
+    "venue": "Vagator Hilltop Arena",
+    "city": "Goa",
+    "priceStartingFrom": 1499,
+    "bannerImage": "https://images.unsplash.com/photo-1470225620780-dba8ba36b745?auto=format&fit=crop&w=1200&q=80",
+    "description": "The maestro of High-Tech Minimal takes over Goa's cliffside for an electric nocturnal journey powered by world-class lasers, massive bass, and hypnotic melodic techno.",
+    "ticketTypes": [
+      {
+        "name": "General Arena GA",
+        "price": 1499,
+        "availableQuantity": 200,
+        "perks": [
+          "Main dancefloor arena access",
+          "Beachside festival village entry",
+          "Official wristband RFID gate tap"
+        ]
+      },
+      {
+        "name": "VIP Elevated Deck",
+        "price": 2999,
+        "availableQuantity": 60,
+        "perks": [
+          "Elevated VIP deck overlooking DJ booth",
+          "Express fast-track security queue",
+          "2 complimentary craft cocktail vouchers",
+          "Private restrooms and bar counter"
+        ]
+      },
+      {
+        "name": "Backstage Table (Group of 4)",
+        "price": 8999,
+        "availableQuantity": 12,
+        "perks": [
+          "Private table behind the DJ console",
+          "Dedicated steward & bottle service",
+          "Full VIP festival hospitality pack",
+          "Valet parking passes"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "evt-food-craftbeer-2026",
+    "title": "The Great Indian Food & Craft Beer Fiesta 2026",
+    "category": "Food & Drinks",
+    "date": "12 - 13 Dec 2026",
+    "time": "12:00 PM - 10:00 PM",
+    "venue": "Jaypee Greens Pavilion",
+    "city": "Delhi NCR",
+    "priceStartingFrom": 349,
+    "bannerImage": "https://images.unsplash.com/photo-1555244162-803834f70033?auto=format&fit=crop&w=1200&q=80",
+    "description": "Featuring 40+ curated culinary pop-ups, artisanal microbreweries, live indie acoustic stages, and interactive dessert workshops in an open-air carnival setting.",
+    "ticketTypes": [
+      {
+        "name": "Single Day Entry Pass",
+        "price": 349,
+        "availableQuantity": 300,
+        "perks": [
+          "Full day access to all food pavilions",
+          "Live music stage performances",
+          "Festival discount coupon booklet"
+        ]
+      },
+      {
+        "name": "Weekend Gourmet Pass",
+        "price": 599,
+        "availableQuantity": 120,
+        "perks": [
+          "Valid for both Saturday & Sunday",
+          "Complimentary commemorative beer mug",
+          "Chef masterclass priority seating"
+        ]
+      },
+      {
+        "name": "Craft Beer Flight & Food Tasting",
+        "price": 1299,
+        "availableQuantity": 40,
+        "perks": [
+          "6 craft brewery tasting tokens",
+          "Curated tapas platter pairing",
+          "Brewer-led tasting tour session"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "evt-theater-mughal-2026",
+    "title": "Mughal-e-Azam: The Broadway-Style Musical Experience",
+    "category": "Theater & Arts",
+    "date": "Sat, 19 Dec 2026",
+    "time": "07:30 PM",
+    "venue": "The Grand Theatre, NMACC",
+    "city": "Mumbai",
+    "priceStartingFrom": 1250,
+    "bannerImage": "https://images.unsplash.com/photo-1507676184212-d03ab07a01bf?auto=format&fit=crop&w=1200&q=80",
+    "description": "Director Feroz Abbas Khan’s world-renowned theatrical production with grand kathak choreography by Mayurbhanj artists, Manish Malhotra royal costumes, and live singing.",
+    "ticketTypes": [
+      {
+        "name": "Silver Circle",
+        "price": 1250,
+        "availableQuantity": 90,
+        "perks": [
+          "Upper circle grand auditorium seating",
+          "Full view of elaborate set designs",
+          "Digital theatre program guide"
+        ]
+      },
+      {
+        "name": "Gold Orchestra",
+        "price": 2499,
+        "availableQuantity": 50,
+        "perks": [
+          "Mid-orchestra premium acoustics",
+          "NMACC foyer lounge welcome drink",
+          "Printed commemorative program"
+        ]
+      },
+      {
+        "name": "Royal Box Pass",
+        "price": 4999,
+        "availableQuantity": 15,
+        "perks": [
+          "Private royal box seating",
+          "Gourmet interlude hors d'oeuvres",
+          "Cast program meet & greet session"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "evt-pottery-workshop-2026",
+    "title": "Terracotta & Wheel Handbuilding Pottery Masterclass",
+    "category": "Workshops",
+    "date": "Sun, 22 Nov 2026",
+    "time": "11:00 AM - 02:00 PM",
+    "venue": "Clay Station Studio, Indiranagar",
+    "city": "Bengaluru",
+    "priceStartingFrom": 850,
+    "bannerImage": "https://images.unsplash.com/photo-1565193566173-7a0ee3dbe261?auto=format&fit=crop&w=1200&q=80",
+    "description": "Unwind with a hands-on wheel-throwing and ceramic clay sculpting workshop guided by master studio potters. Create your own terracotta vase and coffee tumbler to keep.",
+    "ticketTypes": [
+      {
+        "name": "Solo Potter Pass",
+        "price": 850,
+        "availableQuantity": 25,
+        "perks": [
+          "Complete raw clay and wheel station kit",
+          "Kiln firing and glazing for 2 finished pieces",
+          "Complimentary artisanal filter coffee"
+        ]
+      },
+      {
+        "name": "Duo Workshop Pass (For 2)",
+        "price": 1599,
+        "availableQuantity": 10,
+        "perks": [
+          "Double workstation setup",
+          "Take-home sculpting tools set",
+          "Framed polaroid memory from the session"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "evt-anuv-jain-2027",
+    "title": "Anuv Jain — Guldasta India Winter Tour",
+    "category": "Concerts & Gigs",
+    "date": "Sat, 09 Jan 2027",
+    "time": "06:30 PM onwards",
+    "venue": "Manpho Convention Grounds",
+    "city": "Bengaluru",
+    "priceStartingFrom": 799,
+    "bannerImage": "https://images.unsplash.com/photo-1465847899084-d164df4dedc6?auto=format&fit=crop&w=1200&q=80",
+    "description": "Sing your heart out with Anuv Jain performing heartfelt anthems like 'Baarishein', 'Husn', and 'Alag Aasmaan' with a full live acoustic ensemble.",
+    "ticketTypes": [
+      {
+        "name": "Phase 1 General Admission",
+        "price": 799,
+        "availableQuantity": 180,
+        "perks": [
+          "Open concert grounds access",
+          "Food truck court & hydration points",
+          "Digital entry pass"
+        ]
+      },
+      {
+        "name": "Front Fan Pit Pass",
+        "price": 1699,
+        "availableQuantity": 70,
+        "perks": [
+          "Front row barricade pit zone",
+          "Express entry check-in lane",
+          "Exclusive fabric tour wristband"
+        ]
+      },
+      {
+        "name": "Fan Meet & Greet VIP",
+        "price": 3499,
+        "availableQuantity": 18,
+        "perks": [
+          "Exclusive post-show photo session with Anuv",
+          "Signed Guldasta acoustic guitar pick and poster",
+          "VIP hospitality lounge access"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "evt-basscamp-pune-2027",
+    "title": "Bass Camp Festival — Underground Beats & Audio-Visuals",
+    "category": "Nightlife & Clubs",
+    "date": "Sat, 16 Jan 2027",
+    "time": "09:00 PM - 04:00 AM",
+    "venue": "The Mills, Raja Bahadur City Center",
+    "city": "Pune",
+    "priceStartingFrom": 599,
+    "bannerImage": "https://images.unsplash.com/photo-1516450360452-9312f5e86fc7?auto=format&fit=crop&w=1200&q=80",
+    "description": "India's pioneer bass music festival returns with 10 DJ acts spanning drum & bass, dubstep, UK garage, and cutting-edge projection mapping visual artists.",
+    "ticketTypes": [
+      {
+        "name": "Early Bird Entry",
+        "price": 599,
+        "availableQuantity": 90,
+        "perks": [
+          "Entry before 10:30 PM",
+          "Access to both club stages",
+          "Audio visual showcase access"
+        ]
+      },
+      {
+        "name": "Full Night Pass",
+        "price": 999,
+        "availableQuantity": 80,
+        "perks": [
+          "All-night unrestricted entry",
+          "1 complimentary drink token",
+          "Bass Camp sticker pack"
+        ]
+      },
+      {
+        "name": "VIP Mezzanine Pass",
+        "price": 1899,
+        "availableQuantity": 25,
+        "perks": [
+          "Elevated mezzanine lounge view",
+          "Dedicated bar counter with priority service",
+          "Complimentary snacks and cocktail flight"
+        ]
+      }
+    ]
+  }
+]
