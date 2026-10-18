@@ -15,11 +15,11 @@ export default function Footer({ onHostEventClick }) {
                 <Ticket className="w-4 h-4 text-softButter" />
               </div>
               <span className="font-serif font-black text-xl text-softButter">
-                Terra<span className="text-terracotta">Tix</span>
+                Hopi
               </span>
             </div>
             <p className="text-xs text-mutedClay leading-relaxed">
-              TerraTix — Curated live events and ticketing. Discover concerts, standup comedy specials, electronic music festivals, and culinary pop-ups in your city.
+              Hopi — Curated live events and ticketing. Discover concerts, standup comedy specials, electronic music festivals, and culinary pop-ups in your city.
             </p>
             <div className="flex items-center gap-2 text-[11px] text-mutedClay/90 pt-1">
               <ShieldCheck className="w-4 h-4 text-terracotta shrink-0" />
@@ -67,14 +67,14 @@ export default function Footer({ onHostEventClick }) {
               <li className="hover:text-warmCream cursor-pointer transition-colors">Terms of Service</li>
               <li className="hover:text-warmCream cursor-pointer transition-colors">Privacy Policy</li>
               <li className="hover:text-warmCream cursor-pointer transition-colors">Ticket Refund Grievance</li>
-              <li className="hover:text-warmCream cursor-pointer transition-colors">Contact Support: support@terratix.com</li>
+              <li className="hover:text-warmCream cursor-pointer transition-colors">Contact Support: support@hopi.com</li>
             </ul>
           </div>
         </div>
 
         {/* Bottom Strip */}
         <div className="pt-8 flex flex-col sm:flex-row items-center justify-between text-xs text-mutedClay gap-4">
-          <p>© 2026 TerraTix. All rights reserved.</p>
+          <p>© 2026 Hopi. All rights reserved.</p>
           <div className="flex items-center gap-4 text-[11px] text-mutedClay/80">
             <span>Mumbai</span>
             <span>•</span>

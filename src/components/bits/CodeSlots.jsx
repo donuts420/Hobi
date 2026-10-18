@@ -12,7 +12,7 @@ const firstEmpty = slots => Math.max(0, slots.indexOf('') === -1 ? slots.length 
 const isFull = slots => slots.every(Boolean);
 
 export default function CodeSlots({
-  code = 'TRX-9481', copyable = true, label = 'TICKET VERIFICATION HASH', size = 'md',
+  code = 'HOPI-9481', copyable = true, label = 'TICKET VERIFICATION HASH', size = 'md',
   value, onChange, length = 6, onComplete, status = 'idle', mask = false, caret = true,
   disabled = false, autoFocus = false, accentColor = '#FFF1A6', inkColor = '#FAF0D7',
   slotColor = '#181210', digitColor = '#181210', dangerColor = '#D36135',
