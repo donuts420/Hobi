@@ -11,7 +11,7 @@ import CodeSlots from '../bits/CodeSlots';
  */
 export default function ETicketStub({ ticket }) {
   const defaultTicket = {
-    id: 'TRX-9481-JPR',
+    id: 'HOPI-9481-JPR',
     eventTitle: 'Prateek Kuhad — Silhouettes Acoustic India Tour',
     tierName: 'Gold Fan Pit',
     date: 'Sat, 28 Nov 2026',
@@ -21,7 +21,7 @@ export default function ETicketStub({ ticket }) {
     attendeeName: 'Aarav Sharma',
     gate: 'Gate B (Fan Pit)',
     seat: 'Front Pit • 2 Guests',
-    code: 'TRX-9481',
+    code: 'HOPI-9481',
   };
 
   const data = ticket || defaultTicket;
@@ -39,7 +39,7 @@ export default function ETicketStub({ ticket }) {
                 <span className="font-serif font-black text-xs text-softButter">T</span>
               </div>
               <span className="font-serif font-black text-sm tracking-wider text-softButter">
-                TERRATIX ADMIT ONE
+                HOPI ADMIT ONE
               </span>
             </div>
             <Badge variant="butter" size="sm">

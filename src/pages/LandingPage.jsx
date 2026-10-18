@@ -130,7 +130,7 @@ export default function LandingPage({
   const handleConfirmBooking = () => {
     if (totalTicketsCount === 0 || !activeEvent) return;
     const tierName = Object.keys(selectedTiers).find((k) => selectedTiers[k] > 0);
-    const bookingRef = `TRX-${Math.floor(100000 + Math.random() * 900000)}`;
+    const bookingRef = `HOPI-${Math.floor(100000 + Math.random() * 900000)}`;
     setBookingSuccess({
       ref: bookingRef,
       eventTitle: activeEvent.title,
@@ -239,7 +239,7 @@ export default function LandingPage({
             </h2>
           </div>
           <span className="hidden sm:inline-block text-xs text-mutedClay">
-            Handpicked by TerraTix editors
+            Handpicked by Hopi editors
           </span>
         </div>
 

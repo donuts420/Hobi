@@ -6,7 +6,7 @@ import Button from '../components/common/Button';
 import { ArrowLeft, Ticket, ShieldCheck, MapPin } from 'lucide-react';
 
 /**
- * AppRoutes provides the client-side state-driven view routing for TerraTix.
+ * AppRoutes provides the client-side state-driven view routing for Hopi.
  * Handles 'events' (LandingPage) and customer 'vault' (Protected Ticket Passes view).
  */
 export default function AppRoutes({
@@ -21,7 +21,7 @@ export default function AppRoutes({
   // Customer ticket passes state (shown after signing in)
   const mockVaultTickets = [
     {
-      id: 'TRX-9481-JPR',
+      id: 'HOPI-9481-JPR',
       eventTitle: 'Prateek Kuhad — Silhouettes Acoustic India Tour',
       tierName: 'Gold Fan Pit',
       date: 'Sat, 28 Nov 2026',
@@ -31,10 +31,10 @@ export default function AppRoutes({
       attendeeName: 'Aarav Sharma',
       gate: 'Gate B (Fan Pit)',
       seat: 'Front Pit • 2 Guests',
-      code: 'TRX-9481',
+      code: 'HOPI-9481',
     },
     {
-      id: 'TRX-4420-BOM',
+      id: 'HOPI-4420-BOM',
       eventTitle: 'Zakir Khan Live — Haq Se Single 2.0 Comedy Special',
       tierName: 'Ground Floor Classic',
       date: 'Sun, 06 Dec 2026',
@@ -44,7 +44,7 @@ export default function AppRoutes({
       attendeeName: 'Aarav Sharma',
       gate: 'Main Auditorium Foyer',
       seat: 'Row H, Seats 14-15',
-      code: 'TRX-4420',
+      code: 'HOPI-4420',
     },
   ];
 

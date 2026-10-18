@@ -259,7 +259,7 @@ export default function AuthModal({
             </span>
           </div>
           <h3 className="font-serif font-black text-2xl text-softButter">
-            {recoveryMode ? "Set a New Password" : tab === "login" ? "Sign in to TerraTix" : "Create an Account"}
+            {recoveryMode ? "Set a New Password" : tab === "login" ? "Sign in to Hopi" : "Create an Account"}
           </h3>
           <p className="text-xs text-mutedClay max-w-xs mx-auto">
             {recoveryMode

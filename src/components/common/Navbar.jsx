@@ -186,7 +186,7 @@ export default function Navbar({
                 <Ticket className="w-4 h-4 text-softButter" />
               </div>
               <span className="font-serif font-black text-2xl tracking-wider text-softButter">
-                Terra<span className="text-terracotta">Tix</span>
+                Hopi
               </span>
             </a>
 
@@ -538,7 +538,7 @@ export default function Navbar({
               className="w-full text-left px-3 py-2 text-xs font-serif text-terracotta hover:bg-elevatedBorder rounded flex items-center gap-2 cursor-pointer"
             >
               <PlusCircle className="w-4 h-4" />
-              <span>Host an Event on TerraTix</span>
+              <span>Host an Event on Hopi</span>
             </button>
           </div>
         </div>
