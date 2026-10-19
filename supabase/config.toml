@@ -1,0 +1,4 @@
+project_id = "terratix-online-event-ticketing"
+
+[functions.login-email-otp]
+verify_jwt = false
