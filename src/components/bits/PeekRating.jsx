@@ -13,6 +13,9 @@ export default function PeekRating({
   reviewCount = 680,
   tag = 'Sanctuary Choice',
   compact = false,
+  userRating = null,
+  onRate,
+  disabled = false,
 }) {
   const fullStars = Math.floor(rating);
 
@@ -48,6 +51,17 @@ export default function PeekRating({
           </>
         )}
       </div>
+
+      {onRate && (
+        <div className="inline-flex items-center gap-1" role="group" aria-label="Rate this event">
+          <span className="text-[11px] text-mutedClay mr-1">Your rating</span>
+          {[1, 2, 3, 4, 5].map((value) => (
+            <button key={value} type="button" onClick={() => onRate(value)} disabled={disabled} aria-label={`Rate ${value} out of 5 stars`} aria-pressed={userRating === value} className="rounded p-0.5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-terracotta disabled:opacity-50">
+              <Star className={`w-4 h-4 ${value <= (userRating || 0) ? 'fill-softButter text-softButter' : 'text-mutedClay'}`} />
+            </button>
+          ))}
+        </div>
+      )}
 
       {tag && !compact && (
         <div className="hidden sm:inline-flex items-center gap-1 bg-clayBrown/20 border border-clayBrown/40 text-[10px] uppercase tracking-wider text-warmCream px-2 py-0.5 rounded font-serif">
