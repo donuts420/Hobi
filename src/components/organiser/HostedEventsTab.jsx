@@ -112,10 +112,10 @@ export default function HostedEventsTab({ currentUser, onNavigate }) {
       </div>
       )}
 
-      {events.length > 0 && (
+      {publishedCount > 0 && (
         <div className="pt-2 flex justify-center">
           <Button type="button" variant="primary" size="md" icon={<Sparkles className="w-4 h-4" />} onClick={() => onNavigate?.('create-event')}>
-            Create Another Event
+            Add Event
           </Button>
         </div>
       )}
