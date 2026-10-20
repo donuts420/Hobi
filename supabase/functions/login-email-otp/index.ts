@@ -43,7 +43,7 @@ function json(body: unknown, status: number, origin: string) {
 }
 
 Deno.serve(
-  withSupabase({ auth: "none" }, async (request, context) => {
+  withSupabase({ auth: "none" }, async (request: Request, context) => {
     const origin = request.headers.get("Origin") || "";
     const configuredOrigin = Deno.env.get("APP_ORIGIN")?.replace(/\/$/, "");
     const allowedOrigins = new Set(
