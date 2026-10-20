@@ -146,6 +146,8 @@ export default function AppRoutes({
       searchQuery={searchQuery}
       selectedCategory={selectedCategory}
       onSelectCategory={onSelectCategory}
+      currentUser={currentUser}
+      onSignInClick={onSignInClick}
     />
   );
 }

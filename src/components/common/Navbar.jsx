@@ -181,6 +181,7 @@ export default function Navbar({
               href="/"
               onClick={(e) => {
                 e.preventDefault();
+                onNavigate?.('events');
                 document.getElementById('main-scroll-container')?.scrollTo({ top: 0, behavior: 'smooth' });
               }}
               className="flex items-center gap-2.5 cursor-pointer group"
