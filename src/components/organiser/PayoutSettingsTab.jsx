@@ -1,12 +1,13 @@
 import React from 'react';
 import { Landmark, ShieldCheck, Clock, AlertCircle, ArrowUpRight } from 'lucide-react';
 import Badge from '../common/Badge';
+import Button from '../common/Button';
 
 /**
  * PayoutSettingsTab serves as an honest, informational placeholder for future payout setup.
  * Strictly avoids collecting bank details, account numbers, IFSC codes, PAN/GSTIN, or fabricating balances.
  */
-export default function PayoutSettingsTab() {
+export default function PayoutSettingsTab({ onNavigate }) {
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -79,6 +80,17 @@ export default function PayoutSettingsTab() {
           <span>
             Payout configuration is currently unavailable. No financial credentials or bank details are collected at this stage.
           </span>
+        </div>
+
+        <div className="flex justify-end">
+          <Button
+            variant="primary"
+            size="md"
+            icon={<ArrowUpRight className="w-4 h-4" />}
+            onClick={() => onNavigate?.('organiser-events')}
+          >
+            Continue to Hosted Events
+          </Button>
         </div>
       </div>
     </div>

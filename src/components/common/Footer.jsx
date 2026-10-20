@@ -1,6 +1,7 @@
 import React from 'react';
-import { Ticket, ShieldCheck, Mail, Sparkles, ArrowRight } from 'lucide-react';
+import { ShieldCheck, Mail, Sparkles, ArrowRight } from 'lucide-react';
 import Button from './Button';
+import hopiLogo from '../../logos/Hopi-Primary.svg';
 
 export default function Footer({ onHostEventClick, onNavigate }) {
   return (
@@ -10,14 +11,18 @@ export default function Footer({ onHostEventClick, onNavigate }) {
           
           {/* Brand & Mission Col */}
           <div className="md:col-span-1 space-y-4">
-            <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-terracotta to-clayBrown flex items-center justify-center border border-terracotta/40 shadow-sm">
-                <Ticket className="w-4 h-4 text-softButter" />
-              </div>
-              <span className="font-serif font-black text-xl text-softButter">
-                Hopi
-              </span>
-            </div>
+            <a
+              href="/"
+              aria-label="Hopi home"
+              onClick={(e) => {
+                if (onNavigate) e.preventDefault();
+                onNavigate?.('events');
+                document.getElementById('main-scroll-container')?.scrollTo({ top: 0, behavior: 'smooth' });
+              }}
+              className="inline-flex cursor-pointer"
+            >
+              <img src={hopiLogo} alt="" className="w-24 h-11 object-cover transition-transform hover:scale-105" />
+            </a>
             <p className="text-xs text-mutedClay leading-relaxed">
               Hopi — Curated live events and ticketing. Discover concerts, standup comedy specials, electronic music festivals, and culinary pop-ups in your city.
             </p>

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Type, Layers, FileText, Sparkles, AlertCircle } from 'lucide-react';
+import { Type, Layers, FileText, Sparkles, AlertCircle, Mail } from 'lucide-react';
 
 export default function EventBasicsStep({
   formData,
@@ -170,6 +170,57 @@ export default function EventBasicsStep({
             </p>
           )}
         </div>
+
+        <section className="space-y-3" aria-labelledby="event-contacts-heading">
+          <div>
+            <h4 id="event-contacts-heading" className="text-xs font-serif uppercase tracking-wider text-softButter font-semibold">
+              Contact Us <span className="text-terracotta">*</span>
+            </h4>
+            <p className="text-[11px] text-mutedClay mt-1">These contacts will be shown to attendees on your event listing.</p>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {[1, 2].map((number) => (
+              <div key={number} className="space-y-3 rounded-xl border border-elevatedBorder bg-darkRoast/50 p-4">
+                <h5 className="text-xs font-serif font-bold text-warmCream">Contact {number}</h5>
+                <div className="space-y-1.5">
+                  <label htmlFor={`event-contact-${number}-name`} className="block text-[11px] uppercase tracking-wider text-mutedClay">
+                    Name <span className="text-terracotta">*</span>
+                  </label>
+                  <input
+                    id={`event-contact-${number}-name`}
+                    type="text"
+                    required
+                    autoComplete="name"
+                    value={formData[`contact${number}Name`]}
+                    onChange={(e) => onChange(`contact${number}Name`, e.target.value)}
+                    aria-invalid={Boolean(errors[`contact${number}Name`])}
+                    className={`w-full bg-darkRoast text-warmCream placeholder-mutedClay/60 text-sm px-3 py-2.5 rounded-lg border focus:outline-none focus:border-terracotta ${errors[`contact${number}Name`] ? 'border-red-500' : 'border-elevatedBorder'}`}
+                  />
+                  {errors[`contact${number}Name`] && <p role="alert" className="text-xs text-red-400">{errors[`contact${number}Name`]}</p>}
+                </div>
+                <div className="space-y-1.5">
+                  <label htmlFor={`event-contact-${number}-email`} className="block text-[11px] uppercase tracking-wider text-mutedClay">
+                    Email <span className="text-terracotta">*</span>
+                  </label>
+                  <div className="relative">
+                    <input
+                      id={`event-contact-${number}-email`}
+                      type="email"
+                      required
+                      autoComplete="email"
+                      value={formData[`contact${number}Email`]}
+                      onChange={(e) => onChange(`contact${number}Email`, e.target.value)}
+                      aria-invalid={Boolean(errors[`contact${number}Email`])}
+                      className={`w-full bg-darkRoast text-warmCream placeholder-mutedClay/60 text-sm px-3 py-2.5 pr-9 rounded-lg border focus:outline-none focus:border-terracotta ${errors[`contact${number}Email`] ? 'border-red-500' : 'border-elevatedBorder'}`}
+                    />
+                    <Mail className="w-4 h-4 text-mutedClay absolute right-3 top-3" aria-hidden="true" />
+                  </div>
+                  {errors[`contact${number}Email`] && <p role="alert" className="text-xs text-red-400">{errors[`contact${number}Email`]}</p>}
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
       </div>
     </div>
   );
