@@ -1,0 +1,58 @@
+.event-ticket-flip { --fc-w: 640px; --fc-h: 350px; }
+.ticket-face { position: relative; box-sizing: border-box; width: 100%; height: 100%; padding: 18px; color: #211a18; background: #f1eee6; }
+.ticket-front { display: grid; grid-template-rows: 1fr 1fr; gap: 14px; background-image: radial-gradient(#211a18 1px, transparent 1.2px); background-size: 11px 11px; }
+.ticket-front__art { position: relative; display: flex; align-items: flex-start; justify-content: space-between; overflow: hidden; min-height: 0; padding: 18px; color: #f4eee5; background-color: #231a1a; background-image: linear-gradient(135deg, #291b20, #121314); background-position: center; background-size: cover; border: 1px solid #c13b54; }
+.ticket-front__image { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.ticket-front__shade { position: absolute; inset: 0; background: linear-gradient(90deg, rgba(15,13,13,.18), rgba(15,13,13,.68)); }
+.ticket-front__art::after { position: absolute; z-index: 0; inset: 0; content: ''; pointer-events: none; background-image: linear-gradient(rgba(215,50,80,.16) 1px, transparent 1px), linear-gradient(90deg, rgba(215,50,80,.16) 1px, transparent 1px); background-size: 22px 22px; }
+.ticket-front__wordmark { z-index: 1; font-family: var(--font-serif, Georgia, serif); font-size: clamp(28px, 5vw, 54px); font-weight: 900; letter-spacing: -.06em; color: #ec3557; text-shadow: 0 2px 16px #111; }
+.ticket-front__wordmark span { font-size: .36em; letter-spacing: .13em; vertical-align: top; }
+.ticket-front__side-label { z-index: 1; writing-mode: vertical-rl; font: 700 10px/1.2 ui-monospace, monospace; letter-spacing: .12em; text-transform: uppercase; color: #f5eee5; }
+.ticket-front__details { position: relative; display: grid; grid-template-columns: 1fr 150px; min-height: 0; background: rgba(250,248,242,.96); border: 1px solid #c8c2b8; }
+.ticket-front__main { display: flex; flex-direction: column; justify-content: center; min-width: 0; padding: 14px 18px; }
+.ticket-eyebrow { display: block; color: #8a3847; font: 700 9px/1.3 ui-monospace, monospace; letter-spacing: .13em; text-transform: uppercase; }
+.ticket-front__main h3 { display: -webkit-box; overflow: hidden; margin: 6px 0; color: #221d1b; font: 700 clamp(15px, 2.4vw, 22px)/1.15 Georgia, serif; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+.ticket-front__main p { display: flex; gap: 5px; align-items: center; overflow: hidden; margin: 0; color: #665c57; font: 11px/1.3 ui-monospace, monospace; white-space: nowrap; text-overflow: ellipsis; }
+.ticket-front__main p svg { flex: 0 0 13px; width: 13px; height: 13px; color: #b53650; }
+.ticket-front__stub { display: flex; flex-direction: column; justify-content: center; gap: 5px; padding: 12px; border-left: 1px dashed #8c817b; text-align: center; }
+.ticket-front__stub span, .ticket-front__stub small { color: #776c66; font: 8px/1.2 ui-monospace, monospace; letter-spacing: .1em; }
+.ticket-front__stub strong { overflow: hidden; color: #29211e; font: 700 10px/1.3 ui-monospace, monospace; text-overflow: ellipsis; }
+.ticket-front__stub small { letter-spacing: 0; }
+.ticket-bars { height: 22px; background: repeating-linear-gradient(90deg, #211b19 0 2px, transparent 2px 4px, #211b19 4px 5px, transparent 5px 8px); }
+.ticket-front__perforation { position: absolute; top: 50%; right: 148px; width: 19px; height: 19px; border-radius: 50%; background: #0e0d0d; transform: translate(50%, -50%); box-shadow: 0 0 0 2px #d9d4ca; }
+.ticket-back { display: flex; flex-direction: column; padding: 22px 24px; background-color: #f6f3eb; background-image: linear-gradient(rgba(44,35,32,.035) 1px, transparent 1px), linear-gradient(90deg, rgba(44,35,32,.035) 1px, transparent 1px); background-size: 18px 18px; }
+.ticket-back__header { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; padding-bottom: 12px; border-bottom: 1px dashed #9b8f85; }
+.ticket-back__header h3 { display: -webkit-box; overflow: hidden; margin: 5px 0 0; color: #211a18; font: 700 17px/1.15 Georgia, serif; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+.ticket-back__admit { flex: 0 0 auto; padding: 6px 8px; border: 1px solid #bd3852; color: #a52e46; font: 700 9px ui-monospace, monospace; letter-spacing: .1em; }
+.ticket-back__body { display: flex; flex: 1; min-height: 0; justify-content: space-between; gap: 16px; padding-top: 14px; }
+.ticket-back__info { display: grid; flex: 1; grid-template-columns: 1fr 1fr; gap: 12px 18px; align-content: center; }
+.ticket-back__info div { display: flex; min-width: 0; flex-direction: column; gap: 3px; }
+.ticket-back__info span, .ticket-back__info small { color: #7d716b; font: 8px/1.2 ui-monospace, monospace; letter-spacing: .08em; text-transform: uppercase; }
+.ticket-back__info strong { overflow: hidden; color: #29211e; font: 700 11px/1.25 Georgia, serif; text-overflow: ellipsis; white-space: nowrap; }
+.ticket-back__info small { letter-spacing: 0; text-transform: none; }
+.ticket-back__code { display: flex; width: 126px; flex: 0 0 126px; flex-direction: column; align-items: center; justify-content: center; gap: 5px; border-left: 1px dashed #9b8f85; padding-left: 15px; text-align: center; }
+.ticket-qr { display: flex; width: 78px; height: 78px; flex-direction: column; align-items: center; justify-content: center; gap: 1px; background: #211a18; color: #f1eee6; }
+.ticket-qr svg { width: 64px; height: 64px; stroke-width: 1.5; }
+.ticket-qr small { font: 6px/1 ui-monospace, monospace; letter-spacing: .12em; }
+.ticket-back__code span { color: #7d716b; font: 8px ui-monospace, monospace; letter-spacing: .08em; }
+.ticket-back__code strong { color: #29211e; font: 700 9px ui-monospace, monospace; }
+.ticket-back__verified { width: 15px; height: 15px; color: #a53349; }
+.ticket-back__footer { padding-top: 10px; border-top: 1px dashed #9b8f85; }
+.ticket-back__footer > div { color: #211a18; }
+@media (max-width: 520px) {
+  .event-ticket-flip { --fc-h: 350px; }
+  .ticket-face { padding: 12px; }
+  .ticket-front { gap: 10px; }
+  .ticket-front__art { padding: 13px; }
+  .ticket-front__details { grid-template-columns: 1fr 105px; }
+  .ticket-front__main { padding: 10px; }
+  .ticket-front__stub { padding: 8px 6px; }
+  .ticket-front__perforation { right: 103px; width: 15px; height: 15px; }
+  .ticket-back { padding: 16px; }
+  .ticket-back__body { gap: 8px; }
+  .ticket-back__info { gap: 10px 8px; }
+  .ticket-back__info strong { font-size: 10px; }
+  .ticket-back__code { width: 95px; flex-basis: 95px; padding-left: 8px; }
+  .ticket-qr { width: 64px; height: 64px; }
+  .ticket-qr svg { width: 52px; height: 52px; }
+}

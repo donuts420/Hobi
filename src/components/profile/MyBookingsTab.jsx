@@ -134,6 +134,24 @@ export default function MyBookingsTab({ onNavigate }) {
                 </p>
               )}
               <p className="text-[11px] text-mutedClay font-mono">Booking {booking.id.slice(0, 8).toUpperCase()}</p>
+              {booking.status === 'confirmed' && booking.events && (booking.booking_items || []).map((item, index) => {
+                const startsAt = booking.events.starts_at ? new Date(booking.events.starts_at) : null;
+                const code = `HOPI-${booking.id.replaceAll('-', '').slice(0, 4).toUpperCase()}`;
+                return <ETicketStub key={`${booking.id}-${item.ticket_name}-${index}`} ticket={{
+                  id: booking.id.slice(0, 8).toUpperCase(),
+                  eventTitle: booking.events.title,
+                  eventImage: booking.events.banner_image_url,
+                  tierName: item.ticket_name,
+                  date: startsAt?.toLocaleDateString('en-IN', { weekday: 'short', day: '2-digit', month: 'short', year: 'numeric' }) || 'Date unavailable',
+                  time: startsAt?.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }) || '',
+                  venue: booking.events.venue,
+                  city: booking.events.city,
+                  attendeeName: 'Booking holder',
+                  gate: 'General entry',
+                  seat: `${item.quantity} ${Number(item.quantity) === 1 ? 'guest' : 'guests'}`,
+                  code,
+                }} />;
+              })}
             </article>
           ))}
         </div>
