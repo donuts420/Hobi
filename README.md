@@ -1,4 +1,4 @@
-# Hopi — Online Event Ticket Booking System
+# Hopi - Online Event Ticket Booking System
 
 A modern, high-conversion live-events discovery and ticketing web application inspired by **District.in**, crafted with a **Dune / Desert Ochre** visual aesthetic and **Vollkorn** serif typography.
 
