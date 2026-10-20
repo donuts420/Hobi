@@ -10,7 +10,7 @@ import { ArrowLeft, Ticket, ShieldCheck, MapPin } from 'lucide-react';
 
 /**
  * AppRoutes provides the client-side state-driven view routing for Hopi.
- * Handles 'events' (LandingPage), 'profile' (CustomerProfilePage), 'organiser-profile' (OrganiserProfilePage), and customer 'vault'.
+ * Handles customer views and organiser profile tabs within the state-driven app routes.
  */
 export default function AppRoutes({
   currentRoute = 'events',
@@ -69,10 +69,12 @@ export default function AppRoutes({
     );
   }
 
-  if (currentRoute === 'organiser-profile') {
+  if (['organiser-profile', 'organiser-payout', 'organiser-events'].includes(currentRoute)) {
     return (
       <OrganiserProfilePage
+        key={currentRoute}
         currentUser={currentUser}
+        initialTab={currentRoute === 'organiser-payout' ? 'payout' : currentRoute === 'organiser-events' ? 'events' : undefined}
         onNavigate={onNavigate}
         onUserUpdate={onUserUpdate}
         onSignOut={onSignOut}

@@ -8,7 +8,6 @@ import {
   Ticket,
   Edit3,
   Save,
-  Send,
   AlertCircle,
   TrendingUp,
   ShieldCheck,
@@ -26,8 +25,6 @@ export default function EventReviewStep({
   currentUser,
   onGoToStep,
   onSaveDraft,
-  onPublishEvent,
-  isSubmitting = false,
   statusNotice = null,
 }) {
   // Format date display
@@ -331,16 +328,6 @@ export default function EventReviewStep({
           Save Browser Draft
         </Button>
 
-        <Button
-          type="button"
-          variant="primary"
-          size="md"
-          icon={<Send className="w-4 h-4" />}
-          disabled={isSubmitting}
-          onClick={onPublishEvent}
-        >
-          {isSubmitting ? 'Publishing Event…' : 'Publish Event'}
-        </Button>
       </div>
     </div>
   );

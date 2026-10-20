@@ -23,6 +23,7 @@ import PayoutSettingsTab from '../components/organiser/PayoutSettingsTab';
  */
 export default function OrganiserProfilePage({
   currentUser,
+  initialTab,
   onNavigate,
   onUserUpdate,
   onSignOut,
@@ -31,6 +32,7 @@ export default function OrganiserProfilePage({
   onSelectCity,
 }) {
   const [activeTab, setActiveTab] = useState(() => {
+    if (['details', 'events', 'notifications', 'payout'].includes(initialTab)) return initialTab;
     try {
       const p = new URLSearchParams(window.location.search);
       const tabParam = p.get('tab');
@@ -218,7 +220,7 @@ export default function OrganiserProfilePage({
               )}
 
               {activeTab === 'payout' && (
-                <PayoutSettingsTab />
+                <PayoutSettingsTab onNavigate={onNavigate} />
               )}
             </div>
           </div>

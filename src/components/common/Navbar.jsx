@@ -21,6 +21,7 @@ import {
   Briefcase,
 } from 'lucide-react';
 import Button from './Button';
+import hopiLogo from '../../logos/Hopi-Primary.svg';
 
 export default function Navbar({
   selectedCity = 'Delhi NCR',
@@ -180,18 +181,14 @@ export default function Navbar({
             <a
               href="/"
               onClick={(e) => {
-                e.preventDefault();
+                if (onNavigate) e.preventDefault();
                 onNavigate?.('events');
                 document.getElementById('main-scroll-container')?.scrollTo({ top: 0, behavior: 'smooth' });
               }}
-              className="flex items-center gap-2.5 cursor-pointer group"
+              className="flex items-center cursor-pointer group"
+              aria-label="Hopi home"
             >
-              <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-terracotta to-clayBrown flex items-center justify-center border border-terracotta/40 shadow-dune-sm group-hover:scale-105 transition-transform">
-                <Ticket className="w-4 h-4 text-softButter" />
-              </div>
-              <span className="font-serif font-black text-2xl tracking-wider text-softButter">
-                Hopi
-              </span>
+              <img src={hopiLogo} alt="" className="w-24 h-11 object-cover transition-transform group-hover:scale-105" />
             </a>
 
             {/* Location Selector (District.in Style) */}

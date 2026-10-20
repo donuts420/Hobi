@@ -42,7 +42,6 @@ export default function EventCreationPage({
   const [showMobilePreview, setShowMobilePreview] = useState(false);
   const [statusNotice, setStatusNotice] = useState(null);
   const [showDiscardModal, setShowDiscardModal] = useState(false);
-  const [showSubmitModal, setShowSubmitModal] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errors, setErrors] = useState({});
 
@@ -51,6 +50,10 @@ export default function EventCreationPage({
     title: '',
     category: 'Concerts & Gigs',
     description: '',
+    contact1Name: '',
+    contact1Email: '',
+    contact2Name: '',
+    contact2Email: '',
     eventDate: '',
     startTime: '',
     endTime: '',
@@ -212,6 +215,16 @@ export default function EventCreationPage({
       } else if (formData.description.trim().length < 20) {
         newErrors.description =
           'Event description must be at least 20 characters long.';
+      }
+
+      for (const contact of [1, 2]) {
+        const name = formData[`contact${contact}Name`].trim();
+        const email = formData[`contact${contact}Email`].trim();
+        if (!name) newErrors[`contact${contact}Name`] = 'Contact name is required.';
+        if (!email) newErrors[`contact${contact}Email`] = 'Contact email is required.';
+        else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+          newErrors[`contact${contact}Email`] = 'Enter a valid email address.';
+        }
       }
     }
 
@@ -398,6 +411,10 @@ export default function EventCreationPage({
         title: formData.title.trim(),
         category: formData.category,
         description: formData.description.trim(),
+        contact_1_name: formData.contact1Name.trim(),
+        contact_1_email: formData.contact1Email.trim(),
+        contact_2_name: formData.contact2Name.trim(),
+        contact_2_email: formData.contact2Email.trim(),
         starts_at: startsAt.toISOString(),
         ends_at: endsAt?.toISOString() || null,
         venue: formData.address.trim()
@@ -448,15 +465,17 @@ export default function EventCreationPage({
         if (imageUpdateError) throw new Error(`The banner uploaded but could not be attached to the event: ${imageUpdateError.message}`);
       }
 
-      const { error: publishError } = await supabase
+      const { data: publishedEvent, error: publishError } = await supabase
         .from('events')
         .update({ status: 'published' })
-        .eq('id', event.id);
-      if (publishError) throw new Error(publishError.message || 'The event was saved, but could not be published.');
+        .eq('id', event.id)
+        .select('id')
+        .single();
+      if (publishError || !publishedEvent) throw new Error(publishError?.message || 'The event was saved, but could not be published.');
 
       try { localStorage.removeItem(DRAFT_STORAGE_KEY); } catch { /* ignore */ }
-      setStatusNotice({ title: 'Event Published', message: 'Your event and ticket tiers are live and ready for customer checkout.' });
-      setShowSubmitModal(true);
+      setStatusNotice({ title: 'Event Published', message: 'Your event and ticket tiers are live. Review payout setup next.' });
+      onNavigate?.('organiser-payout');
     } catch (error) {
       console.error('Event publishing failed', error instanceof Error ? error.message : 'unknown error');
       if (uploadedBannerPath) {
@@ -636,8 +655,6 @@ export default function EventCreationPage({
                   currentUser={currentUser}
                   onGoToStep={handleGoToStep}
                   onSaveDraft={handleSaveDraft}
-                  onPublishEvent={handlePublishEvent}
-                  isSubmitting={isSubmitting}
                   statusNotice={statusNotice}
                 />
               )}
@@ -757,61 +774,6 @@ export default function EventCreationPage({
         </div>
       )}
 
-      {/* Published Event Confirmation Modal */}
-      {showSubmitModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fadeIn">
-          <div className="max-w-lg w-full bg-elevated border border-terracotta/60 rounded-2xl p-6 sm:p-8 space-y-5 text-warmCream shadow-dune-lg">
-            <div className="w-14 h-14 rounded-2xl bg-clayBrown/40 border border-terracotta text-softButter flex items-center justify-center mx-auto shadow-dune-sm">
-              <CheckCircle2 className="w-7 h-7 text-softButter" />
-            </div>
-
-            <div className="text-center space-y-2">
-              <Badge variant="butter" size="sm">
-                Event Published
-              </Badge>
-              <h3 className="font-serif font-black text-2xl text-softButter">
-                Your Event Is Live
-              </h3>
-              <p className="text-xs sm:text-sm text-mutedClay leading-relaxed">
-                <strong>"{formData.title}"</strong> is published with its ticket tiers and can now accept Razorpay test payments.
-              </p>
-            </div>
-
-            <div className="bg-darkRoast border border-clayBrown/60 rounded-xl p-4 text-xs space-y-2 text-warmCream/90 font-serif">
-              <div className="flex items-center gap-2 text-softButter font-bold">
-                <Sparkles className="w-4 h-4 text-terracotta" />
-                <span>Ready for Ticket Checkout</span>
-              </div>
-              <p className="text-[11px] text-mutedClay leading-relaxed">
-                Customers can find this event in Explore Events and complete checkout using the Razorpay test keys configured for Hopi.
-              </p>
-            </div>
-
-            <div className="space-y-2 pt-2">
-              <Button
-                variant="primary"
-                size="md"
-                className="w-full justify-center"
-                onClick={() => {
-                  setShowSubmitModal(false);
-                  if (onNavigate) onNavigate('organiser-profile');
-                }}
-              >
-                Return to Organiser Profile
-              </Button>
-
-              <Button
-                variant="outline"
-                size="md"
-                className="w-full justify-center"
-                onClick={() => setShowSubmitModal(false)}
-              >
-                Continue Editing
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

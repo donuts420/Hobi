@@ -39,7 +39,7 @@ export default function LandingPage({
         try {
           const { data, error } = await supabase
             .from('events')
-            .select('id, title, category, description, starts_at, venue, city, banner_image_url, rating, review_count, ticket_types(id, name, price_inr, available_quantity, perks)')
+            .select('id, title, category, description, contact_1_name, contact_1_email, contact_2_name, contact_2_email, starts_at, venue, city, banner_image_url, rating, review_count, ticket_types(id, name, price_inr, available_quantity, perks)')
             .eq('status', 'published')
             .order('starts_at');
 
@@ -507,6 +507,23 @@ export default function LandingPage({
                   defaultIndex={0}
                   trigger="click"
                 />
+              )}
+              {[1, 2].some((number) => activeEvent[`contact_${number}_name`] && activeEvent[`contact_${number}_email`]) && (
+                <section className="rounded-xl border border-elevatedBorder bg-darkRoast/60 p-4 space-y-2" aria-labelledby="event-contact-us-heading">
+                  <h4 id="event-contact-us-heading" className="font-serif text-sm font-semibold text-softButter">Contact Us</h4>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    {[1, 2].map((number) => {
+                      const name = activeEvent[`contact_${number}_name`];
+                      const email = activeEvent[`contact_${number}_email`];
+                      return name && email ? (
+                        <div key={email} className="text-xs">
+                          <p className="font-semibold text-warmCream">{name}</p>
+                          <a href={`mailto:${email}`} className="text-mutedClay hover:text-softButter underline underline-offset-2">{email}</a>
+                        </div>
+                      ) : null;
+                    })}
+                  </div>
+                </section>
               )}
               {bookingSuccess ? (
                 <div className="bg-darkRoast border border-clayBrown rounded-xl p-6 text-center space-y-4 animate-fadeIn">
