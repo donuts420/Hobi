@@ -1,14 +1,48 @@
 import React, { useState } from 'react';
 import { ChevronDown, Ticket, RefreshCw, QrCode, Sparkles } from 'lucide-react';
 
-export default function FaqAccordion({ items = [] }) {
-  const defaultFaqs = [
+/**
+ * Displays the Hopi FAQ accordion and booking photo strip.
+ */
+export default function FaqAccordion({ items = [], photos }) {
+  const [activePhoto, setActivePhoto] = useState(0);
+
+  if (photos?.length) {
+    return (
+      <div className="flex h-56 sm:h-72 w-full gap-2 overflow-hidden rounded-xl">
+        {photos.map((photo, index) => (
+          <button
+            key={photo.src}
+            type="button"
+            aria-label={`Show event photo ${index + 1}`}
+            aria-pressed={activePhoto === index}
+            onClick={() => setActivePhoto(index)}
+            className={`relative min-w-0 overflow-hidden rounded-lg transition-[flex] duration-500 cursor-pointer ${
+              activePhoto === index ? 'flex-[5]' : 'flex-1'
+            }`}
+          >
+            <img
+              src={photo.src}
+              alt={photo.alt}
+              className="absolute inset-0 h-full w-full object-cover"
+            />
+            <span className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent" />
+            <span className="absolute bottom-3 left-3 text-left text-sm font-semibold text-white">
+              {photo.alt}
+            </span>
+          </button>
+        ))}
+      </div>
+    );
+  }
+
+  const defaultItems = [
     {
       id: 'delivery',
-      question: 'How do I receive my booking and digital ticket?',
+      title: 'How do I receive my booking and digital ticket?',
       category: 'Instant Delivery',
       icon: <Ticket className="w-4 h-4 text-terracotta" />,
-      answer:
+      content:
         'Once your payment is confirmed, your digital ticket with a high-resolution entry QR code is sent immediately via WhatsApp and Email. You can also view, save, or download it anytime directly from your Hopi account.',
       highlights: [
         'Instant WhatsApp & Email confirmation',
@@ -18,11 +52,11 @@ export default function FaqAccordion({ items = [] }) {
     },
     {
       id: 'transfer',
-      question: 'Can I transfer or cancel my ticket?',
+      title: 'Can I transfer or cancel my ticket?',
       category: 'Flexible Policies',
       icon: <RefreshCw className="w-4 h-4 text-softButter" />,
-      answer:
-        'Yes! Hopi allows 1-click ticket transfer to your friends using their mobile number or email up to 3 hours before gates open. For cancellations and refunds, event-specific organizer policies apply as shown on checkout.',
+      content:
+        'Yes! Hopi allows 1-click ticket transfer to your friends using their mobile number or email up to 3 hours before gates open. For cancellations and refunds, event-specific organizer policies apply as shown on the checkout screen.',
       highlights: [
         'Zero-fee instant ticket transfer',
         'Transparent organizer refund window',
@@ -31,10 +65,10 @@ export default function FaqAccordion({ items = [] }) {
     },
     {
       id: 'checkin',
-      question: 'How does venue entry check-in work?',
+      title: 'How does venue entry check-in work?',
       category: 'At The Gate',
       icon: <QrCode className="w-4 h-4 text-terracotta" />,
-      answer:
+      content:
         'Simply present the digital QR code on your smartphone screen at the venue gate for rapid contactless scanner check-in. No paper printouts are ever required. Gates typically open 60 to 90 minutes before showtime.',
       highlights: [
         'Fast contactless scanner entry',
@@ -44,10 +78,10 @@ export default function FaqAccordion({ items = [] }) {
     },
     {
       id: 'host',
-      question: 'How do I list and sell tickets for my own event?',
+      title: 'How do I list and sell tickets for my own event?',
       category: 'For Organizers',
       icon: <Sparkles className="w-4 h-4 text-softButter" />,
-      answer:
+      content:
         'Publishing your concert, standup show, club night, food festival, or workshop takes under 10 minutes. Enjoy dynamic multi-tier ticket sales, real-time attendee analytics, promo codes, and prompt automated payouts.',
       highlights: [
         'Self-serve 10-minute event onboarding',
@@ -57,29 +91,32 @@ export default function FaqAccordion({ items = [] }) {
     },
   ];
 
-  const list = items && items.length > 0 ? items : defaultFaqs;
-  const [openId, setOpenId] = useState(list[0]?.id || null);
+  const galleryItems = items && items.length > 0 ? items : defaultItems;
+  const [openId, setOpenId] = useState(galleryItems[0]?.id || null);
 
-  const toggleItem = (id) => {
+  const toggleAccordion = (id) => {
     setOpenId(openId === id ? null : id);
   };
 
   return (
     <div className="w-full space-y-3 font-serif">
-      {list.map((item) => {
+      {galleryItems.map((item) => {
         const isOpen = openId === item.id;
+        const titleText = item.title || item.question || '';
+        const contentText = item.content || item.answer || '';
+
         return (
           <div
             key={item.id}
             className={`rounded-xl border transition-all duration-300 overflow-hidden ${
               isOpen
-                ? 'bg-elevated border-clayBrown/80 shadow-dune-md'
-                : 'bg-elevated/60 border-elevatedBorder hover:border-elevatedBorder/90'
+                ? 'bg-elevated border-clayBrown/70 shadow-dune-md'
+                : 'bg-elevated/60 border-elevatedBorder hover:border-elevatedBorder/80'
             }`}
           >
             <button
               type="button"
-              onClick={() => toggleItem(item.id)}
+              onClick={() => toggleAccordion(item.id)}
               className="w-full flex items-center justify-between px-5 py-4 text-left transition-colors focus:outline-none cursor-pointer"
             >
               <div className="flex items-center gap-3.5">
@@ -95,7 +132,7 @@ export default function FaqAccordion({ items = [] }) {
                     {item.category}
                   </span>
                   <h4 className="text-base font-semibold text-warmCream tracking-wide">
-                    {item.question}
+                    {titleText}
                   </h4>
                 </div>
               </div>
@@ -112,7 +149,7 @@ export default function FaqAccordion({ items = [] }) {
             {isOpen && (
               <div className="px-5 pb-5 pt-1 border-t border-elevatedBorder/50 space-y-3 animate-fadeIn">
                 <p className="text-sm text-warmCream/90 leading-relaxed">
-                  {item.answer}
+                  {contentText}
                 </p>
 
                 {item.highlights && item.highlights.length > 0 && (
