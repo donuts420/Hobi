@@ -474,8 +474,8 @@ export default function EventCreationPage({
       if (publishError || !publishedEvent) throw new Error(publishError?.message || 'The event was saved, but could not be published.');
 
       try { localStorage.removeItem(DRAFT_STORAGE_KEY); } catch { /* ignore */ }
-      setStatusNotice({ title: 'Event Published', message: 'Your event and ticket tiers are live. Review payout setup next.' });
-      onNavigate?.('organiser-payout');
+      setStatusNotice({ title: 'Event Published', message: 'Your event and ticket tiers are live.' });
+      onNavigate?.('organiser-events');
     } catch (error) {
       console.error('Event publishing failed', error instanceof Error ? error.message : 'unknown error');
       if (uploadedBannerPath) {

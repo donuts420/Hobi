@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   Building2,
   CalendarPlus,
@@ -8,6 +8,7 @@ import {
   ShieldAlert,
   LogIn,
   User,
+  Phone,
 } from 'lucide-react';
 import Button from '../components/common/Button';
 import OrganiserSummaryCard from '../components/organiser/OrganiserSummaryCard';
@@ -15,6 +16,7 @@ import OrganizationDetailsTab from '../components/organiser/OrganizationDetailsT
 import HostedEventsTab from '../components/organiser/HostedEventsTab';
 import OrganiserNotificationsTab from '../components/organiser/OrganiserNotificationsTab';
 import PayoutSettingsTab from '../components/organiser/PayoutSettingsTab';
+import { supabase } from '../lib/supabase';
 
 /**
  * OrganiserProfilePage renders the Hopi event host & brand profile portal.
@@ -31,6 +33,14 @@ export default function OrganiserProfilePage({
   selectedCity = 'Delhi NCR',
   onSelectCity,
 }) {
+  const [profileRole, setProfileRole] = useState(null);
+  const [profileLoading, setProfileLoading] = useState(Boolean(currentUser?.id));
+  const [profileLoadError, setProfileLoadError] = useState('');
+  const [organizerName, setOrganizerName] = useState(currentUser?.name || '');
+  const [organizerPhone, setOrganizerPhone] = useState(currentUser?.phone || '');
+  const [organizerSubmitting, setOrganizerSubmitting] = useState(false);
+  const [organizerError, setOrganizerError] = useState('');
+
   const [activeTab, setActiveTab] = useState(() => {
     if (['details', 'events', 'notifications', 'payout'].includes(initialTab)) return initialTab;
     try {
@@ -66,6 +76,81 @@ export default function OrganiserProfilePage({
       icon: <Landmark className="w-4 h-4" />,
     },
   ];
+
+  useEffect(() => {
+    let cancelled = false;
+    if (!currentUser?.id) {
+      setProfileLoading(false);
+      setProfileRole(null);
+      return () => { cancelled = true; };
+    }
+
+    setProfileLoading(true);
+    setProfileLoadError('');
+    supabase
+      .from('profiles')
+      .select('role, full_name, phone')
+      .eq('id', currentUser.id)
+      .maybeSingle()
+      .then(({ data, error }) => {
+        if (cancelled) return;
+        if (error) {
+          setProfileLoadError('We could not load your account role. Please refresh and try again.');
+        } else {
+          setProfileRole(data?.role || 'customer');
+          setOrganizerName(data?.full_name || currentUser.name || '');
+          setOrganizerPhone(data?.phone || currentUser.phone || '');
+          if (data?.full_name || data?.phone) {
+            onUserUpdate?.({
+              name: data?.full_name || currentUser.name,
+              phone: data?.phone || currentUser.phone || '',
+            });
+          }
+        }
+        setProfileLoading(false);
+      })
+      .catch(() => {
+        if (cancelled) return;
+        setProfileLoadError('We could not load your account role. Please refresh and try again.');
+        setProfileLoading(false);
+      });
+
+    return () => { cancelled = true; };
+  }, [currentUser?.id, currentUser?.name, currentUser?.phone]);
+
+  const handleOrganizerSignup = async (event) => {
+    event.preventDefault();
+    setOrganizerError('');
+    const name = organizerName.trim();
+    const phone = organizerPhone.trim();
+    const phoneDigits = phone.replace(/\D/g, '').length;
+    if (name.length < 2 || name.length > 100) {
+      setOrganizerError('Enter a name between 2 and 100 characters.');
+      return;
+    }
+    if (phoneDigits < 7 || phoneDigits > 15) {
+      setOrganizerError('Enter a phone number with 7 to 15 digits.');
+      return;
+    }
+
+    setOrganizerSubmitting(true);
+    try {
+      const { data, error } = await supabase.rpc('become_organizer', {
+        p_full_name: name,
+        p_phone: phone,
+      });
+      if (error) throw error;
+      setProfileRole(data || 'organizer');
+      setOrganizerName(name);
+      setOrganizerPhone(phone);
+      setActiveTab('events');
+      onUserUpdate?.({ name, phone });
+    } catch (error) {
+      setOrganizerError(error.message || 'Organizer setup could not be completed. Please try again.');
+    } finally {
+      setOrganizerSubmitting(false);
+    }
+  };
 
   // Unauthenticated State
   if (!currentUser) {
@@ -107,6 +192,63 @@ export default function OrganiserProfilePage({
             </Button>
           </div>
         </div>
+      </div>
+    );
+  }
+
+  if (profileLoading || profileLoadError) {
+    return (
+      <div className="min-h-screen bg-warmCream text-darkRoast font-serif py-16 px-4 flex items-center justify-center">
+        <div className="max-w-md w-full bg-elevated border border-clayBrown/50 rounded-2xl p-8 text-center space-y-4">
+          <h2 className="text-xl font-bold text-softButter">Organizer account</h2>
+          <p className="text-sm text-mutedClay" role={profileLoadError ? 'alert' : undefined}>
+            {profileLoadError || 'Checking your account…'}
+          </p>
+          {profileLoadError && (
+            <Button variant="outline" onClick={() => window.location.reload()}>Refresh</Button>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  if (!['organizer', 'administrator'].includes(profileRole)) {
+    return (
+      <div className="min-h-screen bg-warmCream text-darkRoast font-serif py-12 px-4 sm:px-6 lg:px-8 flex items-center justify-center">
+        <form onSubmit={handleOrganizerSignup} className="max-w-lg w-full bg-elevated border border-clayBrown/50 rounded-2xl p-7 sm:p-9 text-warmCream shadow-dune-lg space-y-6">
+          <div className="space-y-2">
+            <span className="text-[11px] font-mono uppercase tracking-wider text-terracotta">Hopi for Hosts</span>
+            <h1 className="text-2xl sm:text-3xl font-serif font-black text-softButter">Become an organizer</h1>
+            <p className="text-sm text-mutedClay">Add your contact details to start creating and publishing events.</p>
+          </div>
+
+          <div className="space-y-1.5">
+            <label htmlFor="organizer-name" className="block text-xs uppercase tracking-wider text-mutedClay">Your name</label>
+            <input id="organizer-name" required minLength={2} maxLength={100} autoComplete="name" value={organizerName} onChange={(e) => setOrganizerName(e.target.value)} className="w-full bg-darkRoast text-warmCream px-3.5 py-3 rounded-lg border border-elevatedBorder focus:outline-none focus:border-terracotta" />
+          </div>
+
+          <div className="space-y-1.5">
+            <label htmlFor="organizer-email" className="block text-xs uppercase tracking-wider text-mutedClay">Account email</label>
+            <input id="organizer-email" type="email" value={currentUser.email || ''} readOnly className="w-full bg-darkRoast/70 text-mutedClay px-3.5 py-3 rounded-lg border border-elevatedBorder" />
+            <p className="text-[11px] text-mutedClay">Your existing sign-in email will be used. Verify it through your Hopi account first.</p>
+          </div>
+
+          <div className="space-y-1.5">
+            <label htmlFor="organizer-phone" className="block text-xs uppercase tracking-wider text-mutedClay">Phone number</label>
+            <div className="relative">
+              <input id="organizer-phone" type="tel" required autoComplete="tel" value={organizerPhone} onChange={(e) => setOrganizerPhone(e.target.value)} placeholder="+91 98765 43210" className="w-full bg-darkRoast text-warmCream px-3.5 py-3 pr-10 rounded-lg border border-elevatedBorder focus:outline-none focus:border-terracotta" />
+              <Phone className="w-4 h-4 text-mutedClay absolute right-3 top-3.5" aria-hidden="true" />
+            </div>
+            <p className="text-[11px] text-mutedClay">We’ll save this as your organizer contact number. SMS verification isn’t enabled yet.</p>
+          </div>
+
+          {organizerError && <p role="alert" className="text-sm text-red-300">{organizerError}</p>}
+
+          <Button type="submit" className="w-full" disabled={organizerSubmitting}>
+            {organizerSubmitting ? 'Setting up your organizer account…' : 'Continue as an organizer'}
+          </Button>
+          <button type="button" onClick={() => onNavigate?.('events')} className="w-full text-sm text-mutedClay hover:text-warmCream">Back to events</button>
+        </form>
       </div>
     );
   }
