@@ -12,9 +12,7 @@
   outline: none;
   user-select: none;
   -webkit-user-select: none;
-  cursor: grab;
 }
-.depth-carousel:active { cursor: grabbing; }
 .depth-carousel:focus-visible { outline: 2px solid #D36135; outline-offset: 4px; border-radius: 12px; }
 .depth-carousel__stage { position: absolute; inset: 0; transform-style: preserve-3d; }
 .depth-carousel__card { position: absolute; top: 50%; left: 50%; transform-origin: center; overflow: hidden; background: #241B18; box-shadow: 0 30px 60px -20px rgba(0,0,0,.65), 0 8px 20px -10px rgba(0,0,0,.5); will-change: transform, opacity, filter; cursor: pointer; transform: translate(-50%,-50%); }

@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Image, Upload, Globe, Sparkles, Check, AlertCircle, Info, RefreshCw } from 'lucide-react';
+import { Image, Upload, Globe, Sparkles, Check, AlertCircle, Info } from 'lucide-react';
 import Badge from '../../common/Badge';
 
 export default function EventArtworkStep({
@@ -11,6 +11,7 @@ export default function EventArtworkStep({
   const [artworkTab, setArtworkTab] = useState(formData.artworkType || 'preset');
   const [fileError, setFileError] = useState(null);
   const fileInputRef = useRef(null);
+  const galleryInputRef = useRef(null);
 
   // Curated Preset Banners matching Hopi's Desert Ochre / Live Event Aesthetic
   const presets = [
@@ -88,6 +89,23 @@ export default function EventArtworkStep({
     onChange('localFile', file);
     onChange('localFileUrl', blobUrl);
     onChange('bannerUrl', blobUrl);
+  };
+
+  const handleGalleryFiles = (e) => {
+    const files = Array.from(e.target.files || []);
+    const current = formData.galleryFiles || [];
+    const validTypes = ['image/jpeg', 'image/png', 'image/webp'];
+    if (current.length + files.length > 5) {
+      setFileError('Choose up to 5 additional photos.');
+    } else if (files.some((file) => !validTypes.includes(file.type))) {
+      setFileError('Additional photos must be JPEG, PNG, or WebP.');
+    } else if (files.some((file) => file.size > 5 * 1024 * 1024)) {
+      setFileError('Each additional photo must be 5 MB or smaller.');
+    } else {
+      onChange('galleryFiles', [...current, ...files]);
+      setFileError(null);
+    }
+    e.target.value = '';
   };
 
   const handleUrlInput = (val) => {
@@ -258,6 +276,24 @@ export default function EventArtworkStep({
           )}
         </div>
       )}
+
+      <section className="space-y-3 border-t border-elevatedBorder pt-4">
+        <div>
+          <h4 className="text-sm font-serif font-bold text-softButter">Event Photos</h4>
+          <p className="text-[11px] text-mutedClay">Add up to 5 extra photos (JPEG, PNG, or WebP; 5 MB each). They appear after the banner.</p>
+        </div>
+        <input ref={galleryInputRef} type="file" accept="image/jpeg,image/png,image/webp" multiple onChange={handleGalleryFiles} className="hidden" />
+        <button type="button" onClick={() => galleryInputRef.current?.click()} disabled={(formData.galleryFiles || []).length >= 5} className="rounded-lg border border-terracotta/60 px-3 py-2 text-xs text-softButter disabled:opacity-50">
+          Add photos ({(formData.galleryFiles || []).length}/5)
+        </button>
+        {(formData.galleryFiles || []).map((file, index) => (
+          <div key={`${file.name}-${index}`} className="flex items-center justify-between gap-3 rounded-lg bg-elevated p-2 text-xs text-softButter">
+            <span className="truncate">{file.name}</span>
+            <button type="button" onClick={() => onChange('galleryFiles', formData.galleryFiles.filter((_, i) => i !== index))} aria-label={`Remove ${file.name}`} className="text-terracotta">Remove</button>
+          </div>
+        ))}
+        {fileError && <p role="alert" className="text-xs text-red-400">{fileError}</p>}
+      </section>
 
       {/* Tab 3: Custom Image URL */}
       {artworkTab === 'url' && (
