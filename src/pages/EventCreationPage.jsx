@@ -65,6 +65,7 @@ export default function EventCreationPage({
     bannerUrl: DEFAULT_PRESET_BANNER,
     localFile: null,
     localFileUrl: null,
+    galleryFiles: [],
     ticketTypes: [
       {
         id: 'tier-1',
@@ -384,7 +385,7 @@ export default function EventCreationPage({
     setIsSubmitting(true);
     setStatusNotice(null);
     let createdEventId = null;
-    let uploadedBannerPath = null;
+    const uploadedImagePaths = [];
     try {
       const { data: { user }, error: userError } = await supabase.auth.getUser();
       if (userError || !user) throw new Error('Sign in with your real Hopi account before publishing.');
@@ -423,6 +424,7 @@ export default function EventCreationPage({
         city: formData.city.trim(),
         country: 'India',
         banner_image_url: formData.localFile ? DEFAULT_PRESET_BANNER : (formData.bannerUrl || DEFAULT_PRESET_BANNER),
+        gallery_images: [],
         status: 'draft',
       };
       const { data: event, error: eventError } = await supabase
@@ -449,7 +451,7 @@ export default function EventCreationPage({
 
       if (formData.localFile instanceof File) {
         const extension = formData.localFile.name.split('.').pop()?.toLowerCase() || 'jpg';
-        uploadedBannerPath = `${event.id}/${crypto.randomUUID()}.${extension}`;
+        const uploadedBannerPath = `${event.id}/${crypto.randomUUID()}.${extension}`;
         const { error: uploadError } = await supabase.storage
           .from('event-gallery')
           .upload(uploadedBannerPath, formData.localFile, {
@@ -457,12 +459,30 @@ export default function EventCreationPage({
             upsert: false,
           });
         if (uploadError) throw new Error(`Ticket details were saved, but the banner upload failed: ${uploadError.message}`);
+        uploadedImagePaths.push(uploadedBannerPath);
         const { data: publicImage } = supabase.storage.from('event-gallery').getPublicUrl(uploadedBannerPath);
         const { error: imageUpdateError } = await supabase
           .from('events')
           .update({ banner_image_url: publicImage.publicUrl })
           .eq('id', event.id);
         if (imageUpdateError) throw new Error(`The banner uploaded but could not be attached to the event: ${imageUpdateError.message}`);
+      }
+
+      const galleryImages = [];
+      for (const file of formData.galleryFiles || []) {
+        const extension = file.name.split('.').pop()?.toLowerCase() || 'jpg';
+        const path = `${event.id}/${crypto.randomUUID()}.${extension}`;
+        const { error: uploadError } = await supabase.storage.from('event-gallery').upload(path, file, {
+          contentType: file.type,
+          upsert: false,
+        });
+        if (uploadError) throw new Error(`An event photo could not be uploaded: ${uploadError.message}`);
+        uploadedImagePaths.push(path);
+        galleryImages.push(supabase.storage.from('event-gallery').getPublicUrl(path).data.publicUrl);
+      }
+      if (galleryImages.length) {
+        const { error: galleryError } = await supabase.from('events').update({ gallery_images: galleryImages }).eq('id', event.id);
+        if (galleryError) throw new Error(`The photos uploaded but could not be attached to the event: ${galleryError.message}`);
       }
 
       const { data: publishedEvent, error: publishError } = await supabase
@@ -478,8 +498,8 @@ export default function EventCreationPage({
       onNavigate?.('organiser-events');
     } catch (error) {
       console.error('Event publishing failed', error instanceof Error ? error.message : 'unknown error');
-      if (uploadedBannerPath) {
-        try { await supabase.storage.from('event-gallery').remove([uploadedBannerPath]); } catch { /* best effort cleanup */ }
+      if (uploadedImagePaths.length) {
+        try { await supabase.storage.from('event-gallery').remove(uploadedImagePaths); } catch { /* best effort cleanup */ }
       }
       if (createdEventId) {
         const { error: cleanupError } = await supabase.from('events').delete().eq('id', createdEventId);

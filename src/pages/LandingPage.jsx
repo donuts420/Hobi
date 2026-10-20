@@ -39,11 +39,11 @@ export default function LandingPage({
         try {
           const { data, error } = await supabase
             .from('events')
-            .select('id, title, category, description, contact_1_name, contact_1_email, contact_2_name, contact_2_email, starts_at, venue, city, banner_image_url, rating, review_count, ticket_types(id, name, price_inr, available_quantity, perks)')
+            .select('id, title, category, description, contact_1_name, contact_1_email, contact_2_name, contact_2_email, starts_at, venue, city, banner_image_url, gallery_images, rating, review_count, ticket_types(id, name, price_inr, available_quantity, perks)')
             .eq('status', 'published')
             .order('starts_at');
 
-          if (!cancelled && !error && Array.isArray(data) && data.length > 0) {
+          if (!cancelled && !error && Array.isArray(data)) {
             setEvents(data.map((event) => {
               const ticketTypes = event.ticket_types || [];
               const startsAt = new Date(event.starts_at);
@@ -55,6 +55,7 @@ export default function LandingPage({
                   ? Math.min(...ticketTypes.map((tier) => Number(tier.price_inr)))
                   : 0,
                 bannerImage: event.banner_image_url,
+                galleryImages: (Array.isArray(event.gallery_images) ? event.gallery_images : []).map((src, index) => ({ src, label: `Event photo ${index + 1}`, alt: `${event.title} photo ${index + 1}` })),
                 reviewCount: event.review_count,
                 ticketTypes: ticketTypes.map((tier) => ({
                   ...tier,
@@ -67,9 +68,12 @@ export default function LandingPage({
             setLoading(false);
             return;
           }
+          if (error) console.warn('Supabase event fetch failed:', error.message);
         } catch (err) {
-          console.warn('Supabase fetch failed, falling back to mock events:', err);
+          console.warn('Supabase event fetch failed:', err);
         }
+        if (!cancelled) { setEvents([]); setLoading(false); }
+        return;
       }
 
       // Fallback to local static mock dataset
@@ -495,7 +499,7 @@ export default function LandingPage({
             <div className="p-5 sm:p-6 overflow-y-auto space-y-4">
               {!bookingSuccess && (
                 <AccordionGallery
-                  items={(Array.isArray(activeEvent.galleryImages) && activeEvent.galleryImages.length ? activeEvent.galleryImages : [{ src: activeEvent.bannerImage, alt: activeEvent.title }]).map((photo) => ({
+                  items={[{ src: activeEvent.bannerImage, label: 'Event banner', alt: activeEvent.title }, ...(activeEvent.galleryImages || [])].map((photo) => ({
                     image: photo.image || photo.src,
                     label: photo.label || photo.alt || activeEvent.title,
                     alt: photo.alt || activeEvent.title,
