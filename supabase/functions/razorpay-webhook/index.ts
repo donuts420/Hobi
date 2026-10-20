@@ -1,6 +1,7 @@
 import { jsonResponse, withSupabase } from '../_shared/supabase.ts';
 import { finalizeCapturedPayment } from '../_shared/payment.ts';
 import { verifyWebhookSignature } from '../_shared/razorpay.js';
+import { sendTicketEmailIfNeeded } from '../_shared/ticket-email.ts';
 
 Deno.serve(withSupabase({ auth: 'none' }, async (request: Request, context) => {
   if (request.method !== 'POST') return jsonResponse(request, { error: 'Method not allowed' }, 405);
@@ -39,6 +40,15 @@ Deno.serve(withSupabase({ auth: 'none' }, async (request: Request, context) => {
     }
 
     const outcome = await finalizeCapturedPayment(context.supabaseAdmin, payment.order_id, payment.id);
+    if (outcome === 'paid') {
+      const { data: booking, error: bookingError } = await context.supabaseAdmin
+        .from('bookings')
+        .select('id')
+        .eq('razorpay_order_id', payment.order_id)
+        .maybeSingle();
+      if (bookingError || !booking) throw new Error('Confirmed booking could not be loaded for ticket email');
+      await sendTicketEmailIfNeeded(context.supabaseAdmin, booking.id);
+    }
     if (outcome === 'refund_needs_review') {
       console.error('Late captured payment refund needs review', payment.order_id);
     }
