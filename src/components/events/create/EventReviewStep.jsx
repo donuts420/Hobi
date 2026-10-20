@@ -13,7 +13,6 @@ import {
   TrendingUp,
   ShieldCheck,
   Sparkles,
-  Info,
 } from 'lucide-react';
 import Button from '../../common/Button';
 import Badge from '../../common/Badge';
@@ -27,7 +26,7 @@ export default function EventReviewStep({
   currentUser,
   onGoToStep,
   onSaveDraft,
-  onSubmitDemo,
+  onPublishEvent,
   isSubmitting = false,
   statusNotice = null,
 }) {
@@ -58,7 +57,7 @@ export default function EventReviewStep({
             Step 5 of 5
           </span>
           <span className="text-mutedClay">•</span>
-          <span className="text-xs text-mutedClay">Review & Local Verification</span>
+            <span className="text-xs text-mutedClay">Review & Publish</span>
         </div>
         <h3 className="text-xl sm:text-2xl font-serif font-black text-softButter mt-1">
           Review Event Details & Tiers
@@ -71,7 +70,9 @@ export default function EventReviewStep({
       {/* Status Notice if Saved */}
       {statusNotice && (
         <div className="bg-clayBrown/30 border border-terracotta/60 rounded-xl p-4 text-xs text-softButter flex items-start gap-3 animate-fadeIn">
-          <CheckCircle2 className="w-4 h-4 text-terracotta shrink-0 mt-0.5" />
+          {statusNotice.title === 'Event Published'
+            ? <CheckCircle2 className="w-4 h-4 text-terracotta shrink-0 mt-0.5" />
+            : <AlertCircle className="w-4 h-4 text-terracotta shrink-0 mt-0.5" />}
           <div className="space-y-1">
             <p className="font-bold">{statusNotice.title}</p>
             <p className="text-mutedClay text-[11px] leading-relaxed">
@@ -224,7 +225,7 @@ export default function EventReviewStep({
                   {formData.artworkType === 'preset'
                     ? 'Curated Preset'
                     : formData.artworkType === 'file'
-                    ? 'Local File Preview'
+                    ? 'Event Gallery Upload'
                     : 'External Image URL'}
                 </Badge>
               </div>
@@ -308,13 +309,12 @@ export default function EventReviewStep({
         </div>
       </div>
 
-      {/* Integration Honesty Guardrail */}
       <div className="bg-clayBrown/25 border border-terracotta/40 rounded-2xl p-4 flex items-start gap-3 text-xs text-softButter">
-        <Info className="w-4 h-4 text-terracotta shrink-0 mt-0.5" />
+        <ShieldCheck className="w-4 h-4 text-terracotta shrink-0 mt-0.5" />
         <div className="space-y-1">
-          <p className="font-bold">Frontend Demonstration & Local Draft Mode</p>
+          <p className="font-bold">Publish to Hopi</p>
           <p className="text-mutedClay text-[11px] leading-relaxed">
-            In accordance with system boundaries, saving or submitting here stores your configuration in browser <code>localStorage</code>. Backend database insertion, Supabase Storage uploads, and public event publishing are currently in development by the backend team.
+            Publishing saves this event and its ticket tiers to Hopi. Customers can then find it and pay securely through Razorpay Checkout.
           </p>
         </div>
       </div>
@@ -337,9 +337,9 @@ export default function EventReviewStep({
           size="md"
           icon={<Send className="w-4 h-4" />}
           disabled={isSubmitting}
-          onClick={onSubmitDemo}
+          onClick={onPublishEvent}
         >
-          {isSubmitting ? 'Processing Local Submission...' : 'Submit for Review (Frontend Demo)'}
+          {isSubmitting ? 'Publishing Event…' : 'Publish Event'}
         </Button>
       </div>
     </div>

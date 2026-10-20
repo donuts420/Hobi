@@ -207,7 +207,7 @@ export default function OrganiserProfilePage({
               )}
 
               {activeTab === 'events' && (
-                <HostedEventsTab onNavigate={onNavigate} />
+                <HostedEventsTab currentUser={currentUser} onNavigate={onNavigate} />
               )}
 
               {activeTab === 'notifications' && (

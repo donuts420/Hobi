@@ -125,12 +125,12 @@ export default function TicketConfigStep({
                     <label className="block text-[11px] font-serif uppercase tracking-wider text-softButter font-semibold">
                       Price (₹ INR) <span className="text-terracotta">*</span>
                     </label>
-                    <span className="text-[10px] text-mutedClay font-mono">₹0 = Free</span>
+                    <span className="text-[10px] text-mutedClay font-mono">Minimum ₹1</span>
                   </div>
                   <div className="relative">
                     <input
                       type="number"
-                      min="0"
+                      min="1"
                       step="1"
                       value={tier.price}
                       onChange={(e) => onUpdateTier(index, 'price', e.target.value)}

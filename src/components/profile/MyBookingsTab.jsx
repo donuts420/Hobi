@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Ticket, Calendar, Sparkles, ChevronDown, ChevronUp, ShieldCheck } from 'lucide-react';
 import Button from '../common/Button';
 import Badge from '../common/Badge';
 import ETicketStub from '../cards/ETicketStub';
+import { supabase } from '../../lib/supabase';
 
 /**
  * MyBookingsTab renders customer booking history with upcoming & past segments.
@@ -12,11 +13,42 @@ import ETicketStub from '../cards/ETicketStub';
 export default function MyBookingsTab({ onNavigate }) {
   const [activeSegment, setActiveSegment] = useState('upcoming'); // 'upcoming' | 'past'
   const [showDemoPass, setShowDemoPass] = useState(false);
+  const [bookings, setBookings] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState('');
 
-  // In the current architecture, no persistent database exists for bookings.
-  // We honestly present 0 active bookings rather than fabricating mock purchases.
-  const activeBookings = [];
-  const pastBookings = [];
+  useEffect(() => {
+    let cancelled = false;
+    async function loadBookings() {
+      setLoading(true);
+      setLoadError('');
+      const { data, error } = await supabase
+        .from('bookings')
+        .select('id,status,total_amount_inr,created_at,paid_at,events(title,starts_at,venue,city,banner_image_url),booking_items(ticket_name,quantity,unit_price_inr)')
+        .in('status', ['confirmed', 'refund_processing', 'refunded'])
+        .order('created_at', { ascending: false });
+      if (cancelled) return;
+      if (error) {
+        setLoadError('Bookings could not be loaded. Please try again in a moment.');
+      } else {
+        setBookings(data || []);
+      }
+      setLoading(false);
+    }
+    loadBookings();
+    return () => { cancelled = true; };
+  }, []);
+
+  const { activeBookings, pastBookings } = useMemo(() => {
+    const now = Date.now();
+    const upcoming = [];
+    const past = [];
+    bookings.forEach((booking) => {
+      const startsAt = booking.events?.starts_at ? new Date(booking.events.starts_at).getTime() : 0;
+      (startsAt >= now ? upcoming : past).push(booking);
+    });
+    return { activeBookings: upcoming, pastBookings: past };
+  }, [bookings]);
 
   const currentList = activeSegment === 'upcoming' ? activeBookings : pastBookings;
 
@@ -61,10 +93,48 @@ export default function MyBookingsTab({ onNavigate }) {
       </div>
 
       {/* Booking List or Honest Empty State */}
-      {currentList.length > 0 ? (
+      {loading ? (
+        <div className="bg-darkRoast/70 border border-elevatedBorder rounded-2xl p-10 text-center text-sm text-mutedClay">Loading your bookings…</div>
+      ) : loadError ? (
+        <div role="alert" className="bg-darkRoast/70 border border-terracotta/50 rounded-2xl p-8 text-center text-sm text-softButter">{loadError}</div>
+      ) : currentList.length > 0 ? (
         <div className="space-y-6">
-          {currentList.map((ticket) => (
-            <ETicketStub key={ticket.id} ticket={ticket} />
+          {currentList.map((booking) => (
+            <article key={booking.id} className="rounded-2xl bg-darkRoast/70 border border-elevatedBorder p-5 sm:p-6 space-y-4">
+              <div className="flex flex-wrap items-start justify-between gap-3 border-b border-elevatedBorder pb-4">
+                <div>
+                  <h4 className="font-serif font-bold text-lg text-softButter">{booking.events?.title || 'Event booking'}</h4>
+                  <p className="mt-1 text-xs text-mutedClay">
+                    {booking.events?.starts_at ? new Date(booking.events.starts_at).toLocaleString() : 'Event date unavailable'}
+                    {booking.events?.venue ? ` · ${booking.events.venue}` : ''}
+                    {booking.events?.city ? `, ${booking.events.city}` : ''}
+                  </p>
+                </div>
+                <Badge variant={booking.status === 'confirmed' ? 'butter' : 'terracotta'} size="sm">
+                  {booking.status === 'confirmed' ? 'Paid' : booking.status === 'refunded' ? 'Refunded' : 'Refund processing'}
+                </Badge>
+              </div>
+              <div className="space-y-2">
+                {(booking.booking_items || []).map((item) => (
+                  <div key={`${booking.id}-${item.ticket_name}`} className="flex justify-between gap-4 text-sm">
+                    <span className="text-warmCream">{item.ticket_name} × {item.quantity}</span>
+                    <span className="font-mono text-softButter">₹{(Number(item.unit_price_inr) * item.quantity).toLocaleString('en-IN')}</span>
+                  </div>
+                ))}
+              </div>
+              <div className="flex justify-between border-t border-elevatedBorder pt-3 text-sm">
+                <span className="text-mutedClay">{booking.status === 'confirmed' ? 'Amount paid' : 'Booking total'}</span>
+                <strong className="font-mono text-softButter">₹{Number(booking.total_amount_inr).toLocaleString('en-IN')}</strong>
+              </div>
+              {booking.status !== 'confirmed' && (
+                <p className="text-xs text-mutedClay">
+                  {booking.status === 'refunded'
+                    ? 'The ticket hold expired after payment. Razorpay confirmed the refund.'
+                    : 'The ticket hold expired after payment. Razorpay is processing the refund.'}
+                </p>
+              )}
+              <p className="text-[11px] text-mutedClay font-mono">Booking {booking.id.slice(0, 8).toUpperCase()}</p>
+            </article>
           ))}
         </div>
       ) : (

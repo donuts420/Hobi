@@ -25,6 +25,7 @@ import EventArtworkStep from '../components/events/create/EventArtworkStep';
 import TicketConfigStep from '../components/events/create/TicketConfigStep';
 import EventReviewStep from '../components/events/create/EventReviewStep';
 import CreateEventLivePreview from '../components/events/create/CreateEventLivePreview';
+import { supabase, isSupabaseConfigured } from '../lib/supabase';
 
 const DRAFT_STORAGE_KEY = 'hopi_event_creation_draft';
 
@@ -215,7 +216,8 @@ export default function EventCreationPage({
     }
 
     if (step === 2) {
-      const todayStr = new Date().toISOString().split('T')[0];
+      const now = new Date();
+      const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
       if (!formData.eventDate) {
         newErrors.eventDate = 'Event date is required.';
       } else if (formData.eventDate < todayStr) {
@@ -224,6 +226,11 @@ export default function EventCreationPage({
 
       if (!formData.startTime) {
         newErrors.startTime = 'Doors open / start time is required.';
+      } else if (formData.eventDate) {
+        const startsAt = new Date(`${formData.eventDate}T${formData.startTime}`);
+        if (Number.isNaN(startsAt.getTime()) || startsAt <= now) {
+          newErrors.startTime = 'Choose a start time in the future.';
+        }
       }
 
       if (formData.startTime && formData.endTime && formData.startTime === formData.endTime) {
@@ -258,11 +265,11 @@ export default function EventCreationPage({
         formData.ticketTypes.forEach((tier, i) => {
           if (!tier.name || !tier.name.trim()) {
             newErrors[`tier_${i}`] = 'Tier name is required.';
-          } else if (tier.price === '' || isNaN(Number(tier.price)) || Number(tier.price) < 0) {
-            newErrors[`tier_${i}`] = 'Price must be a non-negative number (0 or higher).';
+          } else if (tier.price === '' || !Number.isFinite(Number(tier.price)) || Number(tier.price) < 1) {
+            newErrors[`tier_${i}`] = 'Price must be at least ₹1 to use Razorpay checkout.';
           } else if (
             !tier.totalQuantity ||
-            isNaN(Number(tier.totalQuantity)) ||
+            !Number.isInteger(Number(tier.totalQuantity)) ||
             Number(tier.totalQuantity) < 1
           ) {
             newErrors[`tier_${i}`] = 'Quantity must be at least 1 ticket.';
@@ -349,15 +356,123 @@ export default function EventCreationPage({
     setTimeout(() => setStatusNotice(null), 4000);
   };
 
-  // Submit Demo
-  const handleSubmitDemo = () => {
+  const handlePublishEvent = async () => {
+    for (const step of [1, 2, 3, 4]) {
+      if (!validateStep(step)) {
+        setCurrentStep(step);
+        return;
+      }
+    }
+    if (!isSupabaseConfigured) {
+      setStatusNotice({ title: 'Supabase is not configured', message: 'Connect the Supabase URL and publishable key before publishing events.' });
+      return;
+    }
+
     setIsSubmitting(true);
-    // Simulate brief validation
-    setTimeout(() => {
-      setIsSubmitting(false);
-      handleSaveDraft();
+    setStatusNotice(null);
+    let createdEventId = null;
+    let uploadedBannerPath = null;
+    try {
+      const { data: { user }, error: userError } = await supabase.auth.getUser();
+      if (userError || !user) throw new Error('Sign in with your real Hopi account before publishing.');
+
+      const { data: profile, error: profileError } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', user.id)
+        .maybeSingle();
+      if (profileError) throw new Error('Could not verify your account role. Please try again.');
+      if (!profile || !['organizer', 'administrator'].includes(profile.role)) {
+        throw new Error('Your Hopi account needs the Organizer or Administrator role to publish events.');
+      }
+
+      const startsAt = new Date(`${formData.eventDate}T${formData.startTime}`);
+      let endsAt = null;
+      if (formData.endTime) {
+        endsAt = new Date(`${formData.eventDate}T${formData.endTime}`);
+        if (endsAt <= startsAt) endsAt.setDate(endsAt.getDate() + 1);
+      }
+
+      const eventPayload = {
+        created_by: user.id,
+        title: formData.title.trim(),
+        category: formData.category,
+        description: formData.description.trim(),
+        starts_at: startsAt.toISOString(),
+        ends_at: endsAt?.toISOString() || null,
+        venue: formData.address.trim()
+          ? `${formData.venue.trim()}, ${formData.address.trim()}`
+          : formData.venue.trim(),
+        city: formData.city.trim(),
+        country: 'India',
+        banner_image_url: formData.localFile ? DEFAULT_PRESET_BANNER : (formData.bannerUrl || DEFAULT_PRESET_BANNER),
+        status: 'draft',
+      };
+      const { data: event, error: eventError } = await supabase
+        .from('events')
+        .insert(eventPayload)
+        .select('id')
+        .single();
+      if (eventError || !event) throw new Error(eventError?.code === '42501'
+        ? 'Your account is not allowed to create events. Check that its Organizer or Administrator role is set in Supabase.'
+        : eventError?.message || 'The event could not be saved.');
+      createdEventId = event.id;
+
+      const ticketRows = formData.ticketTypes.map((tier) => ({
+        event_id: event.id,
+        name: tier.name.trim(),
+        price_inr: Number(tier.price),
+        available_quantity: Number(tier.totalQuantity),
+        perks: Array.isArray(tier.perks) ? tier.perks : [],
+      }));
+      const { error: ticketsError } = await supabase.from('ticket_types').insert(ticketRows);
+      if (ticketsError) throw new Error(ticketsError.code === '42501'
+        ? 'The event was saved, but Supabase did not allow its ticket tiers to be added. Check the ticket_types insert policy.'
+        : ticketsError.message || 'Ticket tiers could not be saved.');
+
+      if (formData.localFile instanceof File) {
+        const extension = formData.localFile.name.split('.').pop()?.toLowerCase() || 'jpg';
+        uploadedBannerPath = `${event.id}/${crypto.randomUUID()}.${extension}`;
+        const { error: uploadError } = await supabase.storage
+          .from('event-gallery')
+          .upload(uploadedBannerPath, formData.localFile, {
+            contentType: formData.localFile.type,
+            upsert: false,
+          });
+        if (uploadError) throw new Error(`Ticket details were saved, but the banner upload failed: ${uploadError.message}`);
+        const { data: publicImage } = supabase.storage.from('event-gallery').getPublicUrl(uploadedBannerPath);
+        const { error: imageUpdateError } = await supabase
+          .from('events')
+          .update({ banner_image_url: publicImage.publicUrl })
+          .eq('id', event.id);
+        if (imageUpdateError) throw new Error(`The banner uploaded but could not be attached to the event: ${imageUpdateError.message}`);
+      }
+
+      const { error: publishError } = await supabase
+        .from('events')
+        .update({ status: 'published' })
+        .eq('id', event.id);
+      if (publishError) throw new Error(publishError.message || 'The event was saved, but could not be published.');
+
+      try { localStorage.removeItem(DRAFT_STORAGE_KEY); } catch { /* ignore */ }
+      setStatusNotice({ title: 'Event Published', message: 'Your event and ticket tiers are live and ready for customer checkout.' });
       setShowSubmitModal(true);
-    }, 600);
+    } catch (error) {
+      console.error('Event publishing failed', error instanceof Error ? error.message : 'unknown error');
+      if (uploadedBannerPath) {
+        try { await supabase.storage.from('event-gallery').remove([uploadedBannerPath]); } catch { /* best effort cleanup */ }
+      }
+      if (createdEventId) {
+        const { error: cleanupError } = await supabase.from('events').delete().eq('id', createdEventId);
+        if (cleanupError) console.error('Could not clean up incomplete event', cleanupError.code);
+      }
+      setStatusNotice({
+        title: 'Event was not published',
+        message: error instanceof Error ? error.message : 'Please check your connection and try again.',
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const steps = [
@@ -521,7 +636,7 @@ export default function EventCreationPage({
                   currentUser={currentUser}
                   onGoToStep={handleGoToStep}
                   onSaveDraft={handleSaveDraft}
-                  onSubmitDemo={handleSubmitDemo}
+                  onPublishEvent={handlePublishEvent}
                   isSubmitting={isSubmitting}
                   statusNotice={statusNotice}
                 />
@@ -576,9 +691,9 @@ export default function EventCreationPage({
                       size="md"
                       icon={<CheckCircle2 className="w-4 h-4" />}
                       disabled={isSubmitting}
-                      onClick={handleSubmitDemo}
+                      onClick={handlePublishEvent}
                     >
-                      Complete & Verify
+                      Publish Event
                     </Button>
                   )}
                 </div>
@@ -642,7 +757,7 @@ export default function EventCreationPage({
         </div>
       )}
 
-      {/* Demonstration Submission Confirmation Modal */}
+      {/* Published Event Confirmation Modal */}
       {showSubmitModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fadeIn">
           <div className="max-w-lg w-full bg-elevated border border-terracotta/60 rounded-2xl p-6 sm:p-8 space-y-5 text-warmCream shadow-dune-lg">
@@ -652,24 +767,23 @@ export default function EventCreationPage({
 
             <div className="text-center space-y-2">
               <Badge variant="butter" size="sm">
-                Local Verification Complete
+                Event Published
               </Badge>
               <h3 className="font-serif font-black text-2xl text-softButter">
-                Event Draft Verified & Saved Locally
+                Your Event Is Live
               </h3>
               <p className="text-xs sm:text-sm text-mutedClay leading-relaxed">
-                Your event <strong>"{formData.title}"</strong> has been successfully validated across all 5 sections and cached in your browser session.
+                <strong>"{formData.title}"</strong> is published with its ticket tiers and can now accept Razorpay test payments.
               </p>
             </div>
 
-            {/* Clear Integration Boundary Notice */}
             <div className="bg-darkRoast border border-clayBrown/60 rounded-xl p-4 text-xs space-y-2 text-warmCream/90 font-serif">
               <div className="flex items-center gap-2 text-softButter font-bold">
                 <Sparkles className="w-4 h-4 text-terracotta" />
-                <span>Backend Integration Notice</span>
+                <span>Ready for Ticket Checkout</span>
               </div>
               <p className="text-[11px] text-mutedClay leading-relaxed">
-                In strict accordance with Priority 3 scope, this event has <strong>not</strong> been transmitted to a live backend database, nor published to public discovery feeds. Persistent database insertion, cloud artwork uploads, and live ticket sales require the backend teammate's Supabase event tables.
+                Customers can find this event in Explore Events and complete checkout using the Razorpay test keys configured for Hopi.
               </p>
             </div>
 
@@ -692,7 +806,7 @@ export default function EventCreationPage({
                 className="w-full justify-center"
                 onClick={() => setShowSubmitModal(false)}
               >
-                Continue Reviewing Listing
+                Continue Editing
               </Button>
             </div>
           </div>

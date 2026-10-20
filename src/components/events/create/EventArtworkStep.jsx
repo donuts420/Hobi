@@ -85,7 +85,7 @@ export default function EventArtworkStep({
 
     // Generate local preview blob URL
     const blobUrl = URL.createObjectURL(file);
-    onChange('localFile', { name: file.name, size: file.size, type: file.type });
+    onChange('localFile', file);
     onChange('localFileUrl', blobUrl);
     onChange('bannerUrl', blobUrl);
   };
@@ -140,7 +140,7 @@ export default function EventArtworkStep({
           }`}
         >
           <Upload className="w-3.5 h-3.5 text-terracotta" />
-          <span>Local File Preview</span>
+          <span>Upload Image</span>
         </button>
 
         <button
@@ -234,9 +234,9 @@ export default function EventArtworkStep({
           <div className="bg-clayBrown/25 border border-terracotta/50 rounded-xl p-3.5 flex items-start gap-3 text-xs text-softButter">
             <Info className="w-4 h-4 text-terracotta shrink-0 mt-0.5" />
             <div className="space-y-1">
-              <p className="font-bold">Local Browser Preview Only</p>
+              <p className="font-bold">Uploaded When You Publish</p>
               <p className="text-mutedClay text-[11px] leading-relaxed">
-                Your selected image is previewed locally in your browser memory. Persistent image storage requires Supabase Storage buckets, which will be integrated by the backend team.
+                Your image is uploaded to the event gallery when you publish. Use a curated preset or public image URL if you do not want to upload a file.
               </p>
             </div>
           </div>

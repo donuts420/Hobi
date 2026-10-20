@@ -26,6 +26,8 @@ export default function LandingPage({
   const [activeEvent, setActiveEvent] = useState(null);
   const [selectedTiers, setSelectedTiers] = useState({});
   const [bookingSuccess, setBookingSuccess] = useState(null);
+  const [bookingError, setBookingError] = useState('');
+  const [checkoutLoading, setCheckoutLoading] = useState(false);
   const [activeSpotlightIndex, setActiveSpotlightIndex] = useState(0);
 
   // Load published events from Supabase or fallback to /mock/events.json
@@ -37,7 +39,7 @@ export default function LandingPage({
         try {
           const { data, error } = await supabase
             .from('events')
-            .select('id, title, category, description, starts_at, venue, city, banner_image_url, rating, review_count, ticket_types(name, price_inr, available_quantity, perks)')
+            .select('id, title, category, description, starts_at, venue, city, banner_image_url, rating, review_count, ticket_types(id, name, price_inr, available_quantity, perks)')
             .eq('status', 'published')
             .order('starts_at');
 
@@ -131,41 +133,140 @@ export default function LandingPage({
     setActiveEvent(event);
     setSelectedTiers({});
     setBookingSuccess(null);
+    setBookingError('');
   };
 
-  const handleTierQuantityChange = (tierName, qty) => {
+  const handleTierQuantityChange = (ticketTypeId, qty) => {
+    const otherTickets = Object.entries(selectedTiers)
+      .filter(([id]) => id !== ticketTypeId)
+      .reduce((sum, [, quantity]) => sum + quantity, 0);
+    if (otherTickets + qty > 10) {
+      setBookingError('You can book up to 10 tickets in one checkout.');
+      return;
+    }
+    setBookingError('');
     setSelectedTiers((prev) => ({
       ...prev,
-      [tierName]: qty,
+      [ticketTypeId]: qty,
     }));
   };
 
   // Calculate order total in INR
   const totalAmount = activeEvent
     ? (activeEvent.ticketTypes || []).reduce((acc, tier) => {
-        const qty = selectedTiers[tier.name] || 0;
+        const qty = selectedTiers[tier.id] || 0;
         return acc + tier.price * qty;
       }, 0)
     : 0;
 
   const totalTicketsCount = Object.values(selectedTiers).reduce((a, b) => a + b, 0);
 
-  const handleConfirmBooking = () => {
+  const loadRazorpay = () => new Promise((resolve, reject) => {
+    if (window.Razorpay) return resolve();
+    const existing = document.getElementById('razorpay-checkout-script');
+    if (existing) {
+      existing.addEventListener('load', resolve, { once: true });
+      existing.addEventListener('error', reject, { once: true });
+      return;
+    }
+    const script = document.createElement('script');
+    script.id = 'razorpay-checkout-script';
+    script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+    script.onload = resolve;
+    script.onerror = reject;
+    document.body.appendChild(script);
+  });
+
+  const handleConfirmBooking = async () => {
     if (totalTicketsCount === 0 || !activeEvent) return;
     if (!currentUser) {
       setActiveEvent(null);
       onSignInClick?.();
       return;
     }
-    const tierName = Object.keys(selectedTiers).find((k) => selectedTiers[k] > 0);
-    const bookingRef = `HOPI-${Math.floor(100000 + Math.random() * 900000)}`;
-    setBookingSuccess({
-      ref: bookingRef,
-      eventTitle: activeEvent.title,
-      tierName: tierName || 'General Entry',
-      count: totalTicketsCount,
-      total: totalAmount,
-    });
+    const chosenTickets = (activeEvent.ticketTypes || []).filter((tier) => selectedTiers[tier.id] > 0);
+    if (!isSupabaseConfigured || !chosenTickets.length || chosenTickets.some((tier) => !tier.id)) {
+      setBookingError('Live ticket booking is unavailable for this event right now.');
+      return;
+    }
+    setCheckoutLoading(true);
+    setBookingError('');
+    try {
+      const { data: order, error: orderError } = await supabase.functions.invoke('razorpay-create-order', {
+        body: {
+          eventId: activeEvent.id,
+          items: Object.entries(selectedTiers)
+            .filter(([, quantity]) => quantity > 0)
+            .map(([ticketTypeId, quantity]) => ({ ticketTypeId, quantity })),
+        },
+      });
+      if (orderError) throw new Error(orderError.message || 'Could not start checkout.');
+      if (!order?.orderId || !order?.keyId || !order?.bookingId) {
+        throw new Error(order?.error || 'Could not start checkout.');
+      }
+      await loadRazorpay();
+      if (!window.Razorpay) throw new Error('Razorpay Checkout did not load. Please try again.');
+
+      let verificationStarted = false;
+      const checkout = new window.Razorpay({
+        key: order.keyId,
+        amount: order.amount,
+        currency: order.currency,
+        order_id: order.orderId,
+        name: 'Hopi',
+        description: activeEvent.title,
+        prefill: { name: currentUser.name || '', email: currentUser.email || '' },
+        theme: { color: '#D36135' },
+        handler: async (payment) => {
+          verificationStarted = true;
+          try {
+            const { data: result, error } = await supabase.functions.invoke('razorpay-verify-payment', {
+              body: {
+                bookingId: order.bookingId,
+                orderId: payment.razorpay_order_id,
+                paymentId: payment.razorpay_payment_id,
+                signature: payment.razorpay_signature,
+              },
+            });
+            if (error) throw new Error(error.message || 'Payment confirmation is still processing.');
+            if (result?.status === 'paid') {
+              const tierName = (activeEvent.ticketTypes || [])
+                .filter((tier) => selectedTiers[tier.id] > 0)
+                .map((tier) => tier.name)
+                .join(', ');
+              setBookingSuccess({
+                ref: order.bookingId.slice(0, 8).toUpperCase(),
+                eventTitle: activeEvent.title,
+                tierName,
+                count: totalTicketsCount,
+                total: order.amount / 100,
+              });
+            } else if (result?.status?.startsWith('refund_')) {
+              setBookingError('Your payment arrived after the ticket hold expired. A refund was requested; check your account or My Bookings for updates.');
+            } else {
+              throw new Error(result?.error || 'Payment confirmation is still processing. Check My Bookings before trying again.');
+            }
+          } catch (error) {
+            setBookingError(error.message || 'Payment confirmation is still processing. Check My Bookings before trying again.');
+          } finally {
+            setCheckoutLoading(false);
+          }
+        },
+        modal: {
+          ondismiss: () => {
+            if (!verificationStarted) setCheckoutLoading(false);
+          },
+        },
+      });
+      checkout.on('payment.failed', () => {
+        setBookingError('Payment did not complete. Your ticket hold will be released automatically in 15 minutes.');
+        setCheckoutLoading(false);
+      });
+      checkout.open();
+    } catch (error) {
+      setBookingError(error.message || 'Checkout could not start. Please try again.');
+      setCheckoutLoading(false);
+    }
   };
 
   return (
@@ -435,7 +536,7 @@ export default function LandingPage({
                     </div>
                   </div>
                   <p className="text-[11px] text-mutedClay">
-                    ✓ E-ticket with QR code sent via WhatsApp & Email. No printouts needed!
+                    Payment verified. Your booking is saved to your Hopi account.
                   </p>
                   <Button
                     variant="primary"
@@ -458,13 +559,18 @@ export default function LandingPage({
                   <div className="grid grid-cols-1 gap-4">
                     {(activeEvent.ticketTypes || []).length ? activeEvent.ticketTypes.map((tier) => (
                       <TicketTierCard
-                        key={tier.name}
+                        key={tier.id || tier.name}
                         tier={tier}
-                        quantity={selectedTiers[tier.name] || 0}
-                        onQuantityChange={(qty) => handleTierQuantityChange(tier.name, qty)}
+                        quantity={selectedTiers[tier.id] || 0}
+                        onQuantityChange={(qty) => handleTierQuantityChange(tier.id, qty)}
                       />
                     )) : <p className="rounded-lg border border-elevatedBorder bg-darkRoast/60 p-4 text-sm text-mutedClay">Ticket pricing is not available for this event yet.</p>}
                   </div>
+                  {bookingError && (
+                    <p role="alert" className="rounded-lg border border-terracotta/50 bg-terracotta/10 p-3 text-sm text-softButter">
+                      {bookingError}
+                    </p>
+                  )}
                 </>
               )}
             </div>
@@ -488,11 +594,11 @@ export default function LandingPage({
                   <Button
                     variant="primary"
                     size="md"
-                    disabled={totalTicketsCount === 0}
+                    disabled={totalTicketsCount === 0 || checkoutLoading}
                     onClick={handleConfirmBooking}
                     icon={<Ticket className="w-4 h-4" />}
                   >
-                    Confirm & Book
+                    {checkoutLoading ? 'Opening secure checkout…' : 'Continue to Payment'}
                   </Button>
                 </div>
               </div>
