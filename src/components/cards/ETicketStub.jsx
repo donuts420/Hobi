@@ -1,136 +1,105 @@
-import React from 'react';
-import { Calendar, Clock, MapPin, QrCode, ShieldCheck, Download, Share2 } from 'lucide-react';
-import Badge from '../common/Badge';
+import { useState } from 'react';
+import { Check, Copy, Download, MapPin, QrCode, Share2, ShieldCheck } from 'lucide-react';
 import Button from '../common/Button';
 import CodeSlots from '../bits/CodeSlots';
+import FlipCard from '../bits/FlipCard';
+import './ETicketStub.css';
 
-/**
- * ETicketStub component displays a collectible perforated digital ticket pass.
- *
- * @param {Object} ticket - Ticket data object { id, eventTitle, tierName, date, time, venue, city, attendeeName, seatNumber, code }
- */
+const sampleTicket = {
+  id: 'HOPI-9481-JPR',
+  eventTitle: 'Prateek Kuhad — Silhouettes Acoustic India Tour',
+  tierName: 'Gold Fan Pit',
+  date: 'Sat, 28 Nov 2026',
+  time: '07:00 PM onwards',
+  venue: 'Jawahar Kala Kendra Amphitheatre',
+  city: 'Jaipur, India',
+  attendeeName: 'Aarav Sharma',
+  gate: 'Gate B (Fan Pit)',
+  seat: 'Front Pit • 2 Guests',
+  code: 'HOPI-9481',
+};
+
 export default function ETicketStub({ ticket }) {
-  const defaultTicket = {
-    id: 'HOPI-9481-JPR',
-    eventTitle: 'Prateek Kuhad — Silhouettes Acoustic India Tour',
-    tierName: 'Gold Fan Pit',
-    date: 'Sat, 28 Nov 2026',
-    time: '07:00 PM onwards',
-    venue: 'Jawahar Kala Kendra Amphitheatre',
-    city: 'Jaipur, India',
-    attendeeName: 'Aarav Sharma',
-    gate: 'Gate B (Fan Pit)',
-    seat: 'Front Pit • 2 Guests',
-    code: 'HOPI-9481',
-  };
+  const [copied, setCopied] = useState(false);
+  const data = { ...sampleTicket, ...ticket };
 
-  const data = ticket || defaultTicket;
+  const front = (
+    <div className="ticket-face ticket-front">
+      <div className="ticket-front__art">
+        {data.eventImage && <img className="ticket-front__image" src={data.eventImage} alt="" />}
+        <span className="ticket-front__shade" aria-hidden="true" />
+        <div className="ticket-front__wordmark">HOPI <span>LIVE</span></div>
+        <div className="ticket-front__side-label">ADMIT ONE · {data.tierName}</div>
+      </div>
+      <div className="ticket-front__details">
+        <div className="ticket-front__main">
+          <span className="ticket-eyebrow">EVENT PASS · {data.date}</span>
+          <h3>{data.eventTitle}</h3>
+          <p><MapPin aria-hidden="true" />{data.venue}{data.city ? ` · ${data.city}` : ''}</p>
+        </div>
+        <div className="ticket-front__stub">
+          <div className="ticket-bars" aria-hidden="true" />
+          <span>BOOKING ID</span>
+          <strong>{data.id}</strong>
+          <small>Tap or press Enter to flip</small>
+        </div>
+      </div>
+      <span className="ticket-front__perforation" aria-hidden="true" />
+    </div>
+  );
+
+  const back = (
+    <div className="ticket-face ticket-back">
+      <div className="ticket-back__header">
+        <div><span className="ticket-eyebrow">HOPI · EVENT ADMISSION</span><h3>{data.eventTitle}</h3></div>
+        <span className="ticket-back__admit">ADMIT ONE</span>
+      </div>
+      <div className="ticket-back__body">
+        <div className="ticket-back__info">
+          <div><span>DATE & TIME</span><strong>{data.date}</strong><small>{data.time}</small></div>
+          <div><span>VENUE</span><strong>{data.venue}</strong><small>{data.city}</small></div>
+          <div><span>TICKET TIER</span><strong>{data.tierName}</strong><small>{data.seat}</small></div>
+          <div><span>ATTENDEE</span><strong>{data.attendeeName}</strong><small>{data.gate}</small></div>
+        </div>
+        <div className="ticket-back__code">
+          <div className="ticket-qr" aria-label="Illustrative QR preview"><QrCode aria-hidden="true" /><small>QR PREVIEW</small></div>
+          <span>BOOKING REFERENCE</span>
+          <strong>{data.id}</strong>
+          <ShieldCheck aria-hidden="true" className="ticket-back__verified" />
+        </div>
+      </div>
+      <div className="ticket-back__footer"><CodeSlots code={data.code} label="BOOKING CODE" size="sm" copyable={false} /></div>
+    </div>
+  );
 
   return (
     <div className="w-full max-w-2xl mx-auto font-serif">
-      <div className="relative bg-elevated rounded-2xl border border-clayBrown/70 shadow-dune-lg overflow-hidden flex flex-col md:flex-row">
-        
-        {/* Left Side: Main Event Pass */}
-        <div className="flex-1 p-6 sm:p-8 space-y-6">
-          {/* Header */}
-          <div className="flex items-center justify-between border-b border-elevatedBorder/80 pb-4">
-            <div className="flex items-center gap-2.5">
-              <div className="w-7 h-7 rounded bg-gradient-to-br from-terracotta to-clayBrown flex items-center justify-center border border-terracotta/40">
-                <span className="font-serif font-black text-xs text-softButter">T</span>
-              </div>
-              <span className="font-serif font-black text-sm tracking-wider text-softButter">
-                HOPI ADMIT ONE
-              </span>
-            </div>
-            <Badge variant="butter" size="sm">
-              {data.tierName}
-            </Badge>
-          </div>
-
-          {/* Event Details */}
-          <div className="space-y-2">
-            <h3 className="font-serif font-bold text-2xl text-softButter tracking-tight">
-              {data.eventTitle}
-            </h3>
-            <div className="flex items-center gap-1.5 text-xs text-terracotta">
-              <MapPin className="w-3.5 h-3.5 shrink-0" />
-              <span>{data.venue} — {data.city}</span>
-            </div>
-          </div>
-
-          {/* Grid Metadata */}
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 pt-4 border-t border-elevatedBorder/80 text-xs">
-            <div>
-              <span className="block text-mutedClay text-[10px] uppercase font-mono tracking-wider">Date & Time</span>
-              <span className="font-semibold text-warmCream mt-0.5 block">{data.date}</span>
-              <span className="text-mutedClay text-[11px] block">{data.time}</span>
-            </div>
-            <div>
-              <span className="block text-mutedClay text-[10px] uppercase font-mono tracking-wider">Attendee</span>
-              <span className="font-semibold text-warmCream mt-0.5 block">{data.attendeeName}</span>
-              <span className="text-mutedClay text-[11px] block">{data.seat}</span>
-            </div>
-            <div>
-              <span className="block text-mutedClay text-[10px] uppercase font-mono tracking-wider">Entry Portal</span>
-              <span className="font-semibold text-softButter mt-0.5 block">{data.gate}</span>
-              <span className="text-mutedClay text-[11px] block">Fast Track</span>
-            </div>
-          </div>
-
-          {/* Cryptographic Code Slot */}
-          <div className="pt-2">
-            <CodeSlots code={data.code} label="GATE VERIFICATION CRYPTO-HASH" size="sm" />
-          </div>
-        </div>
-
-        {/* Perforated Divider (Dashed with circular punch-outs) */}
-        <div className="relative flex md:flex-col items-center justify-between border-t md:border-t-0 md:border-l border-dashed border-clayBrown/70 px-4 py-4 md:py-8 bg-darkRoast/50">
-          {/* Top circle cutout (for desktop) */}
-          <div className="hidden md:block absolute -top-4 left-1/2 -translate-x-1/2 w-8 h-8 rounded-full bg-darkRoast border border-clayBrown/60" />
-          {/* Bottom circle cutout (for desktop) */}
-          <div className="hidden md:block absolute -bottom-4 left-1/2 -translate-x-1/2 w-8 h-8 rounded-full bg-darkRoast border border-clayBrown/60" />
-
-          {/* QR Stub */}
-          <div className="flex flex-col items-center text-center space-y-3 w-full md:w-36">
-            <div className="p-3 bg-warmCream rounded-xl border border-clayBrown shadow-inner">
-              {/* QR Code representation */}
-              <div className="w-24 h-24 bg-darkRoast p-2 rounded flex flex-col items-center justify-center relative overflow-hidden">
-                <QrCode className="w-20 h-20 text-softButter" />
-                <div className="absolute inset-0 bg-terracotta/10 pointer-events-none" />
-              </div>
-            </div>
-
-            <div className="space-y-0.5">
-              <span className="font-mono text-[10px] text-mutedClay uppercase block">TICKET ID</span>
-              <span className="font-mono text-xs font-bold text-softButter block">{data.id}</span>
-            </div>
-
-            <div className="flex items-center gap-1 text-[10px] font-mono text-terracotta">
-              <ShieldCheck className="w-3.5 h-3.5" />
-              <span>Offline Verified</span>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Ticket Action Buttons */}
+      <FlipCard
+        front={front}
+        back={back}
+        axis="y"
+        flipOnClick
+        draggable={false}
+        tilt
+        tiltMax={5}
+        glare={false}
+        hoverScale={1.01}
+        perspective={1200}
+        width={640}
+        height={350}
+        radius={18}
+        background="#f1eee6"
+        color="#211a18"
+        shadow
+        shadowColor="#000000"
+        shadowOpacity={0.35}
+        ariaLabel={`Event ticket for ${data.eventTitle}. Activate to flip for pass details.`}
+        className="event-ticket-flip"
+      />
       <div className="mt-4 flex items-center justify-end gap-3">
-        <Button
-          variant="outline"
-          size="sm"
-          icon={<Share2 className="w-3.5 h-3.5" />}
-          onClick={() => alert(`Share link for ticket #${data.id} copied to clipboard!`)}
-        >
-          Share Pass
-        </Button>
-        <Button
-          variant="secondary"
-          size="sm"
-          icon={<Download className="w-3.5 h-3.5" />}
-          onClick={() => window.print()}
-        >
-          Download PDF
-        </Button>
+        <Button variant="outline" size="sm" icon={copied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />} onClick={() => { navigator.clipboard?.writeText(data.code); setCopied(true); window.setTimeout(() => setCopied(false), 1800); }}>{copied ? 'Copied' : 'Copy Code'}</Button>
+        <Button variant="outline" size="sm" icon={<Share2 className="h-3.5 w-3.5" />} onClick={() => alert(`Share link for ticket #${data.id} copied to clipboard!`)}>Share Pass</Button>
+        <Button variant="secondary" size="sm" icon={<Download className="h-3.5 w-3.5" />} onClick={() => window.print()}>Download PDF</Button>
       </div>
     </div>
   );
