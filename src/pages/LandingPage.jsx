@@ -6,8 +6,9 @@ import MarqueeStrip from '../components/bits/MarqueeStrip';
 import EventCard from '../components/cards/EventCard';
 import TicketTierCard from '../components/cards/TicketTierCard';
 import DepthCarousel from '../components/bits/DepthCarousel';
+import AccordionGallery from '../components/bits/AccordionGallery';
 import FaqAccordion from '../components/bits/FaqAccordion';
-import { supabase } from '../lib/supabase';
+import { supabase, isSupabaseConfigured } from '../lib/supabase';
 
 export default function LandingPage({
   selectedCity = 'Delhi NCR',
@@ -26,45 +27,66 @@ export default function LandingPage({
   const [bookingSuccess, setBookingSuccess] = useState(null);
   const [activeSpotlightIndex, setActiveSpotlightIndex] = useState(0);
 
-  // Load published events and their ticket tiers from Supabase.
+  // Load published events from Supabase or fallback to /mock/events.json
   useEffect(() => {
     let cancelled = false;
 
     async function loadEvents() {
-      const { data, error } = await supabase
-        .from('events')
-        .select('id, title, category, description, starts_at, venue, city, banner_image_url, rating, review_count, ticket_types(name, price_inr, available_quantity, perks)')
-        .eq('status', 'published')
-        .order('starts_at');
+      if (isSupabaseConfigured) {
+        try {
+          const { data, error } = await supabase
+            .from('events')
+            .select('id, title, category, description, starts_at, venue, city, banner_image_url, rating, review_count, ticket_types(name, price_inr, available_quantity, perks)')
+            .eq('status', 'published')
+            .order('starts_at');
 
-      if (cancelled) return;
-      if (error) {
-        console.error('Could not load events from Supabase:', error.message);
-        setLoading(false);
-        return;
+          if (!cancelled && !error && Array.isArray(data) && data.length > 0) {
+            setEvents(data.map((event) => {
+              const ticketTypes = event.ticket_types || [];
+              const startsAt = new Date(event.starts_at);
+              return {
+                ...event,
+                date: startsAt.toLocaleDateString(),
+                time: startsAt.toLocaleTimeString(),
+                priceStartingFrom: ticketTypes.length
+                  ? Math.min(...ticketTypes.map((tier) => Number(tier.price_inr)))
+                  : 0,
+                bannerImage: event.banner_image_url,
+                reviewCount: event.review_count,
+                ticketTypes: ticketTypes.map((tier) => ({
+                  ...tier,
+                  price: Number(tier.price_inr),
+                  availableQuantity: tier.available_quantity,
+                  perks: Array.isArray(tier.perks) ? tier.perks : [],
+                })),
+              };
+            }));
+            setLoading(false);
+            return;
+          }
+        } catch (err) {
+          console.warn('Supabase fetch failed, falling back to mock events:', err);
+        }
       }
 
-      setEvents(data.map((event) => {
-        const ticketTypes = event.ticket_types || [];
-        const startsAt = new Date(event.starts_at);
-        return {
-          ...event,
-          date: startsAt.toLocaleDateString(),
-          time: startsAt.toLocaleTimeString(),
-          priceStartingFrom: ticketTypes.length
-            ? Math.min(...ticketTypes.map((tier) => Number(tier.price_inr)))
-            : 0,
-          bannerImage: event.banner_image_url,
-          reviewCount: event.review_count,
-          ticketTypes: ticketTypes.map((tier) => ({
-            ...tier,
-            price: Number(tier.price_inr),
-            availableQuantity: tier.available_quantity,
-            perks: Array.isArray(tier.perks) ? tier.perks : [],
-          })),
-        };
-      }));
-      setLoading(false);
+      // Fallback to local static mock dataset
+      try {
+        const res = await fetch('/mock/events.json');
+        if (res.ok) {
+          const mockData = await res.json();
+          if (!cancelled) {
+            setEvents(mockData);
+            setLoading(false);
+            return;
+          }
+        }
+      } catch (err) {
+        console.warn('Could not load mock events:', err);
+      }
+
+      if (!cancelled) {
+        setLoading(false);
+      }
     }
 
     loadEvents();

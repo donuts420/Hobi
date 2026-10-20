@@ -18,6 +18,7 @@ import {
   Check,
   LogOut,
   Layers,
+  Briefcase,
 } from 'lucide-react';
 import Button from './Button';
 
@@ -31,6 +32,8 @@ export default function Navbar({
   onHostEventClick,
   currentUser = null,
   onSignOut,
+  onNavigate,
+  currentRoute = 'events',
 }) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [cityModalOpen, setCityModalOpen] = useState(false);
@@ -385,7 +388,7 @@ export default function Navbar({
                 </button>
 
                 {userDropdownOpen && (
-                  <div className="absolute right-0 top-full mt-2 w-48 bg-elevated border border-clayBrown/80 rounded-xl shadow-dune-lg p-1.5 z-50 animate-fadeIn text-xs">
+                  <div className="absolute right-0 top-full mt-2 w-52 bg-elevated border border-clayBrown/80 rounded-xl shadow-dune-lg p-1.5 z-50 animate-fadeIn text-xs">
                     <div className="px-3 py-1.5 border-b border-elevatedBorder text-[10px] text-mutedClay font-mono truncate">
                       {currentUser.email}
                     </div>
@@ -393,10 +396,31 @@ export default function Navbar({
                       type="button"
                       onClick={() => {
                         setUserDropdownOpen(false);
-                        const el = document.getElementById('events-catalogue');
-                        if (el) el.scrollIntoView({ behavior: 'smooth' });
+                        if (onNavigate) onNavigate('profile');
                       }}
-                      className="w-full text-left px-3 py-2 rounded text-warmCream hover:bg-elevatedBorder flex items-center gap-2 cursor-pointer"
+                      className="w-full text-left px-3 py-2 rounded text-warmCream hover:bg-elevatedBorder hover:text-softButter flex items-center gap-2 cursor-pointer transition-colors"
+                    >
+                      <User className="w-3.5 h-3.5 text-terracotta" />
+                      <span>Profile & Settings</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setUserDropdownOpen(false);
+                        if (onNavigate) onNavigate('organiser-profile');
+                      }}
+                      className="w-full text-left px-3 py-2 rounded text-warmCream hover:bg-elevatedBorder hover:text-softButter flex items-center gap-2 cursor-pointer transition-colors"
+                    >
+                      <Briefcase className="w-3.5 h-3.5 text-terracotta" />
+                      <span>Organiser Profile</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setUserDropdownOpen(false);
+                        if (onNavigate) onNavigate('vault');
+                      }}
+                      className="w-full text-left px-3 py-2 rounded text-warmCream hover:bg-elevatedBorder hover:text-softButter flex items-center gap-2 cursor-pointer transition-colors"
                     >
                       <Ticket className="w-3.5 h-3.5 text-terracotta" />
                       <span>My Bookings</span>
@@ -407,7 +431,7 @@ export default function Navbar({
                         setUserDropdownOpen(false);
                         if (onSignOut) onSignOut();
                       }}
-                      className="w-full text-left px-3 py-2 rounded text-terracotta hover:bg-elevatedBorder flex items-center gap-2 cursor-pointer"
+                      className="w-full text-left px-3 py-2 rounded text-terracotta hover:bg-elevatedBorder flex items-center gap-2 cursor-pointer transition-colors border-t border-elevatedBorder mt-1 pt-2"
                     >
                       <LogOut className="w-3.5 h-3.5" />
                       <span>Sign Out</span>
@@ -475,6 +499,60 @@ export default function Navbar({
       {/* Mobile Drawer */}
       {mobileMenuOpen && (
         <div className="lg:hidden bg-elevated border-b border-elevatedBorder px-4 pt-3 pb-6 space-y-4 animate-fadeIn font-serif">
+          {/* Authenticated Customer Profile Quick Access in Mobile Drawer */}
+          {currentUser && (
+            <div className="p-3 bg-darkRoast rounded-xl border border-elevatedBorder space-y-2">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-full bg-clayBrown/60 border border-terracotta text-softButter text-xs font-serif font-black flex items-center justify-center shrink-0">
+                  {(currentUser.name || 'C').charAt(0).toUpperCase()}
+                </div>
+                <div className="min-w-0 flex-1">
+                  <div className="text-xs font-serif font-bold text-softButter truncate">
+                    {currentUser.name}
+                  </div>
+                  <div className="text-[10px] font-mono text-mutedClay truncate">
+                    {currentUser.email}
+                  </div>
+                </div>
+              </div>
+              <div className="grid grid-cols-3 gap-1.5 pt-1.5 border-t border-elevatedBorder">
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (onNavigate) onNavigate('profile');
+                    setMobileMenuOpen(false);
+                  }}
+                  className="px-2 py-1.5 rounded-lg text-[10px] font-serif text-center bg-elevated hover:bg-elevatedBorder text-softButter border border-clayBrown/40 flex items-center justify-center gap-1 cursor-pointer"
+                >
+                  <User className="w-3 h-3 text-terracotta shrink-0" />
+                  <span className="truncate">Profile</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (onNavigate) onNavigate('organiser-profile');
+                    setMobileMenuOpen(false);
+                  }}
+                  className="px-2 py-1.5 rounded-lg text-[10px] font-serif text-center bg-elevated hover:bg-elevatedBorder text-softButter border border-clayBrown/40 flex items-center justify-center gap-1 cursor-pointer"
+                >
+                  <Briefcase className="w-3 h-3 text-terracotta shrink-0" />
+                  <span className="truncate">Organiser</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (onNavigate) onNavigate('vault');
+                    setMobileMenuOpen(false);
+                  }}
+                  className="px-2 py-1.5 rounded-lg text-[10px] font-serif text-center bg-elevated hover:bg-elevatedBorder text-warmCream border border-elevatedBorder flex items-center justify-center gap-1 cursor-pointer"
+                >
+                  <Ticket className="w-3 h-3 text-terracotta shrink-0" />
+                  <span className="truncate">Bookings</span>
+                </button>
+              </div>
+            </div>
+          )}
+
           {/* Mobile Location Selector with Find My Location */}
           <div>
             <div className="flex items-center justify-between mb-2">
