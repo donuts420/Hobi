@@ -1,14 +1,41 @@
-import React from 'react';
-import { CalendarPlus, Sparkles, Layers, Clock } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import { CalendarPlus, Sparkles, Layers, Clock, MapPin } from 'lucide-react';
 import Button from '../common/Button';
 import Badge from '../common/Badge';
+import { supabase } from '../../lib/supabase';
 
 /**
- * HostedEventsTab renders the organiser's event management section.
- * Honestly presents an empty state since event ownership/creation is not yet implemented (Priority 3).
- * Strictly avoids fabricated events, counts, ticket revenue, or false publication statuses.
+ * HostedEventsTab shows the signed-in organiser's persisted event listings.
  */
-export default function HostedEventsTab({ onNavigate }) {
+export default function HostedEventsTab({ currentUser, onNavigate }) {
+  const [events, setEvents] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState('');
+
+  useEffect(() => {
+    let cancelled = false;
+    async function loadEvents() {
+      if (!currentUser?.id) {
+        setEvents([]);
+        setLoading(false);
+        return;
+      }
+      const { data, error } = await supabase
+        .from('events')
+        .select('id,title,starts_at,venue,city,status')
+        .eq('created_by', currentUser.id)
+        .order('created_at', { ascending: false });
+      if (cancelled) return;
+      if (error) setLoadError('Your hosted events could not be loaded. Please refresh and try again.');
+      else setEvents(data || []);
+      setLoading(false);
+    }
+    loadEvents();
+    return () => { cancelled = true; };
+  }, [currentUser?.id]);
+
+  const publishedCount = events.filter((event) => event.status === 'published').length;
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -23,11 +50,32 @@ export default function HostedEventsTab({ onNavigate }) {
         </div>
 
         <Badge variant="clay" size="sm">
-          0 Active Listings
+          {publishedCount} Active {publishedCount === 1 ? 'Listing' : 'Listings'}
         </Badge>
       </div>
 
-      {/* Honest Empty State Container */}
+      {loading ? (
+        <div className="bg-darkRoast/70 border border-elevatedBorder rounded-2xl p-8 text-center text-sm text-mutedClay">Loading your events…</div>
+      ) : loadError ? (
+        <div role="alert" className="bg-darkRoast/70 border border-terracotta/50 rounded-2xl p-8 text-center text-sm text-softButter">{loadError}</div>
+      ) : events.length > 0 ? (
+        <div className="space-y-4">
+          {events.map((event) => (
+            <article key={event.id} className="bg-darkRoast/70 border border-elevatedBorder rounded-2xl p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div className="min-w-0 space-y-2">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <h4 className="font-serif font-bold text-softButter">{event.title}</h4>
+                  <Badge variant={event.status === 'published' ? 'butter' : 'clay'} size="sm">{event.status}</Badge>
+                </div>
+                <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-mutedClay">
+                  <span className="inline-flex items-center gap-1.5"><Clock className="w-3.5 h-3.5 text-terracotta" />{new Date(event.starts_at).toLocaleString()}</span>
+                  <span className="inline-flex items-center gap-1.5"><MapPin className="w-3.5 h-3.5 text-terracotta" />{event.venue}, {event.city}</span>
+                </div>
+              </div>
+            </article>
+          ))}
+        </div>
+      ) : (
       <div className="bg-darkRoast/70 border border-elevatedBorder rounded-2xl p-8 sm:p-12 text-center space-y-5">
         <div className="w-16 h-16 rounded-2xl bg-elevated border border-clayBrown/60 flex items-center justify-center mx-auto text-terracotta shadow-dune-sm">
           <CalendarPlus className="w-7 h-7" />
@@ -38,7 +86,7 @@ export default function HostedEventsTab({ onNavigate }) {
             You Haven't Created Any Events Yet
           </h4>
           <p className="text-xs sm:text-sm text-mutedClay leading-relaxed">
-            When event creation is completed, your published listings, multi-tier ticket sales, and venue schedules will appear here.
+            Events you publish will appear here with their current status and schedule.
           </p>
         </div>
 
@@ -62,6 +110,15 @@ export default function HostedEventsTab({ onNavigate }) {
           </Button>
         </div>
       </div>
+      )}
+
+      {events.length > 0 && (
+        <div className="pt-2 flex justify-center">
+          <Button type="button" variant="primary" size="md" icon={<Sparkles className="w-4 h-4" />} onClick={() => onNavigate?.('create-event')}>
+            Create Another Event
+          </Button>
+        </div>
+      )}
     </div>
   );
 }
