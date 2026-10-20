@@ -2,10 +2,11 @@ import React, { useState } from 'react';
 import { ChevronDown, Ticket, RefreshCw, QrCode, Sparkles } from 'lucide-react';
 
 /**
- * Displays the existing FAQ accordion and booking photo strip.
+ * Displays the Hopi FAQ accordion and booking photo strip.
  */
 export default function FaqAccordion({ items = [], photos }) {
   const [activePhoto, setActivePhoto] = useState(0);
+
   if (photos?.length) {
     return (
       <div className="flex h-56 sm:h-72 w-full gap-2 overflow-hidden rounded-xl">
@@ -16,16 +17,25 @@ export default function FaqAccordion({ items = [], photos }) {
             aria-label={`Show event photo ${index + 1}`}
             aria-pressed={activePhoto === index}
             onClick={() => setActivePhoto(index)}
-            className={`relative min-w-0 overflow-hidden rounded-lg transition-[flex] duration-500 ${activePhoto === index ? 'flex-[5]' : 'flex-1'}`}
+            className={`relative min-w-0 overflow-hidden rounded-lg transition-[flex] duration-500 cursor-pointer ${
+              activePhoto === index ? 'flex-[5]' : 'flex-1'
+            }`}
           >
-            <img src={photo.src} alt={photo.alt} className="absolute inset-0 h-full w-full object-cover" />
+            <img
+              src={photo.src}
+              alt={photo.alt}
+              className="absolute inset-0 h-full w-full object-cover"
+            />
             <span className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent" />
-            <span className="absolute bottom-3 left-3 text-left text-sm font-semibold text-white">{photo.alt}</span>
+            <span className="absolute bottom-3 left-3 text-left text-sm font-semibold text-white">
+              {photo.alt}
+            </span>
           </button>
         ))}
       </div>
     );
   }
+
   const defaultItems = [
     {
       id: 'delivery',
@@ -81,7 +91,7 @@ export default function FaqAccordion({ items = [], photos }) {
     },
   ];
 
-  const galleryItems = items.length > 0 ? items : defaultItems;
+  const galleryItems = items && items.length > 0 ? items : defaultItems;
   const [openId, setOpenId] = useState(galleryItems[0]?.id || null);
 
   const toggleAccordion = (id) => {
@@ -92,10 +102,13 @@ export default function FaqAccordion({ items = [], photos }) {
     <div className="w-full space-y-3 font-serif">
       {galleryItems.map((item) => {
         const isOpen = openId === item.id;
+        const titleText = item.title || item.question || '';
+        const contentText = item.content || item.answer || '';
+
         return (
           <div
             key={item.id}
-            className={`rounded-lg border transition-all duration-300 overflow-hidden ${
+            className={`rounded-xl border transition-all duration-300 overflow-hidden ${
               isOpen
                 ? 'bg-elevated border-clayBrown/70 shadow-dune-md'
                 : 'bg-elevated/60 border-elevatedBorder hover:border-elevatedBorder/80'
@@ -104,11 +117,11 @@ export default function FaqAccordion({ items = [], photos }) {
             <button
               type="button"
               onClick={() => toggleAccordion(item.id)}
-              className="w-full flex items-center justify-between px-5 py-4 text-left transition-colors focus:outline-none"
+              className="w-full flex items-center justify-between px-5 py-4 text-left transition-colors focus:outline-none cursor-pointer"
             >
               <div className="flex items-center gap-3.5">
                 <div
-                  className={`w-9 h-9 rounded-md flex items-center justify-center transition-colors ${
+                  className={`w-9 h-9 rounded-lg flex items-center justify-center transition-colors shrink-0 ${
                     isOpen ? 'bg-clayBrown/40 border border-clayBrown' : 'bg-darkRoast border border-elevatedBorder'
                   }`}
                 >
@@ -119,13 +132,13 @@ export default function FaqAccordion({ items = [], photos }) {
                     {item.category}
                   </span>
                   <h4 className="text-base font-semibold text-warmCream tracking-wide">
-                    {item.title}
+                    {titleText}
                   </h4>
                 </div>
               </div>
 
               <div
-                className={`p-1.5 rounded-full border border-elevatedBorder text-mutedClay transition-transform duration-300 ${
+                className={`p-1.5 rounded-full border border-elevatedBorder text-mutedClay transition-transform duration-300 shrink-0 ${
                   isOpen ? 'rotate-180 bg-clayBrown/30 text-softButter' : ''
                 }`}
               >
@@ -136,7 +149,7 @@ export default function FaqAccordion({ items = [], photos }) {
             {isOpen && (
               <div className="px-5 pb-5 pt-1 border-t border-elevatedBorder/50 space-y-3 animate-fadeIn">
                 <p className="text-sm text-warmCream/90 leading-relaxed">
-                  {item.content}
+                  {contentText}
                 </p>
 
                 {item.highlights && item.highlights.length > 0 && (
@@ -144,7 +157,7 @@ export default function FaqAccordion({ items = [], photos }) {
                     {item.highlights.map((highlight, idx) => (
                       <div
                         key={idx}
-                        className="flex items-center gap-2 text-xs text-mutedClay bg-darkRoast/60 px-3 py-1.5 rounded border border-elevatedBorder/60"
+                        className="flex items-center gap-2 text-xs text-mutedClay bg-darkRoast/60 px-3 py-1.5 rounded-lg border border-elevatedBorder/60"
                       >
                         <span className="w-1.5 h-1.5 rounded-full bg-terracotta" />
                         <span>{highlight}</span>

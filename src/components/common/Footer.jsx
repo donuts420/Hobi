@@ -2,7 +2,7 @@ import React from 'react';
 import { Ticket, ShieldCheck, Mail, Sparkles, ArrowRight } from 'lucide-react';
 import Button from './Button';
 
-export default function Footer({ onHostEventClick }) {
+export default function Footer({ onHostEventClick, onNavigate }) {
   return (
     <footer className="bg-elevated border-t border-elevatedBorder pt-16 pb-12 text-warmCream font-serif mt-24">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -50,7 +50,15 @@ export default function Footer({ onHostEventClick }) {
               <li>
                 <button type="button" onClick={onHostEventClick} className="hover:text-warmCream transition-colors">Host an Event</button>
               </li>
-              <li className="hover:text-warmCream cursor-pointer transition-colors">Organizer Dashboard</li>
+              <li>
+                <button
+                  type="button"
+                  onClick={() => onNavigate && onNavigate('organiser-profile')}
+                  className="hover:text-warmCream transition-colors text-left"
+                >
+                  Organizer Dashboard
+                </button>
+              </li>
               <li className="hover:text-warmCream cursor-pointer transition-colors">Ticketing & Pricing Plans</li>
               <li className="hover:text-warmCream cursor-pointer transition-colors">RFID & Box Office Entry Solutions</li>
               <li className="hover:text-warmCream cursor-pointer transition-colors">Promoter Partner Program</li>

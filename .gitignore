@@ -4,3 +4,4 @@ docs
 docs/*
 .env
 .env.*
+supabase/.temp/

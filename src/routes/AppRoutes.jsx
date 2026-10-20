@@ -1,5 +1,8 @@
 import React from 'react';
 import LandingPage from '../pages/LandingPage';
+import CustomerProfilePage from '../pages/CustomerProfilePage';
+import OrganiserProfilePage from '../pages/OrganiserProfilePage';
+import EventCreationPage from '../pages/EventCreationPage';
 import ETicketStub from '../components/cards/ETicketStub';
 import Badge from '../components/common/Badge';
 import Button from '../components/common/Button';
@@ -7,7 +10,7 @@ import { ArrowLeft, Ticket, ShieldCheck, MapPin } from 'lucide-react';
 
 /**
  * AppRoutes provides the client-side state-driven view routing for Hopi.
- * Handles 'events' (LandingPage) and customer 'vault' (Protected Ticket Passes view).
+ * Handles 'events' (LandingPage), 'profile' (CustomerProfilePage), 'organiser-profile' (OrganiserProfilePage), and customer 'vault'.
  */
 export default function AppRoutes({
   currentRoute = 'events',
@@ -17,6 +20,10 @@ export default function AppRoutes({
   searchQuery = '',
   selectedCategory = 'All',
   onSelectCategory,
+  currentUser = null,
+  onUserUpdate,
+  onSignOut,
+  onSignInClick,
 }) {
   // Customer ticket passes state (shown after signing in)
   const mockVaultTickets = [
@@ -47,6 +54,45 @@ export default function AppRoutes({
       code: 'HOPI-4420',
     },
   ];
+
+  if (currentRoute === 'profile') {
+    return (
+      <CustomerProfilePage
+        currentUser={currentUser}
+        onNavigate={onNavigate}
+        onUserUpdate={onUserUpdate}
+        onSignOut={onSignOut}
+        onSignInClick={onSignInClick}
+        selectedCity={selectedCity}
+        onSelectCity={onSelectCity}
+      />
+    );
+  }
+
+  if (currentRoute === 'organiser-profile') {
+    return (
+      <OrganiserProfilePage
+        currentUser={currentUser}
+        onNavigate={onNavigate}
+        onUserUpdate={onUserUpdate}
+        onSignOut={onSignOut}
+        onSignInClick={onSignInClick}
+        selectedCity={selectedCity}
+        onSelectCity={onSelectCity}
+      />
+    );
+  }
+
+  if (currentRoute === 'create-event') {
+    return (
+      <EventCreationPage
+        currentUser={currentUser}
+        onNavigate={onNavigate}
+        selectedCity={selectedCity}
+        onSelectCity={onSelectCity}
+      />
+    );
+  }
 
   if (currentRoute === 'vault') {
     return (

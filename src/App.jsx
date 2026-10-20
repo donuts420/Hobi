@@ -18,20 +18,77 @@ export default function App() {
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       if (event === 'PASSWORD_RECOVERY' && session) setRecoverySession(true);
-      if (event === 'SIGNED_OUT') setRecoverySession(false);
+      if (event === 'SIGNED_OUT') {
+        setRecoverySession(false);
+        setCurrentRoute('events');
+        setCurrentUser(null);
+      }
       const user = session?.user;
-      if (!user) setCurrentRoute('events');
-      setCurrentUser(user ? {
-        id: user.id,
-        email: user.email,
-        name: user.user_metadata?.full_name || user.email?.split('@')[0] || 'Customer',
-      } : null);
+      if (user) {
+        setCurrentUser({
+          id: user.id,
+          email: user.email,
+          name: user.user_metadata?.full_name || user.email?.split('@')[0] || 'Customer',
+          phone: user.user_metadata?.phone || '',
+          preferredCity: user.user_metadata?.preferred_city || '',
+          preferences: user.user_metadata?.preferences || null,
+          userMetadata: user.user_metadata || {},
+          user_metadata: user.user_metadata || {},
+          createdAt: user.created_at || null,
+        });
+      }
     });
 
     return () => subscription.unsubscribe();
   }, []);
 
+  // Support route & preview flags via URL query parameters (e.g. ?route=profile or ?demo=1)
+  useEffect(() => {
+    try {
+      const params = new URLSearchParams(window.location.search);
+      const routeParam = params.get('route');
+      if (routeParam) {
+        setCurrentRoute(routeParam);
+      }
+      if (params.get('demo') === '1' && !currentUser) {
+        setCurrentUser({
+          id: 'usr-demo-789421',
+          email: 'aarav.sharma@example.com',
+          name: 'Aarav Sharma',
+          phone: '+91 98765 43210',
+          preferredCity: 'Delhi NCR',
+          preferences: {
+            emailAlerts: true,
+            eventReminders: true,
+            weeklyDigest: false,
+            selectedGenres: ['Concerts & Gigs', 'Standup Comedy'],
+          },
+          userMetadata: {
+            organization_name: 'Desert Mirage Productions',
+            business_email: 'events@desertmirage.in',
+            business_phone: '+91 98765 43210',
+            website_url: 'https://desertmirage.in',
+            organizer_bio: 'Independent live music, cultural gatherings, and curated theatre experiences across Delhi NCR & Rajasthan.',
+            city: 'Delhi NCR',
+          },
+          user_metadata: {
+            organization_name: 'Desert Mirage Productions',
+            business_email: 'events@desertmirage.in',
+            business_phone: '+91 98765 43210',
+            website_url: 'https://desertmirage.in',
+            organizer_bio: 'Independent live music, cultural gatherings, and curated theatre experiences across Delhi NCR & Rajasthan.',
+            city: 'Delhi NCR',
+          },
+          createdAt: '2026-01-15T10:00:00.000Z',
+        });
+      }
+    } catch {
+      // Ignore if URLSearchParams is unavailable
+    }
+  }, []);
+
   const handleSignOut = async () => {
+    setCurrentUser(null);
     const { error } = await supabase.auth.signOut();
     if (error) console.error('Could not sign out:', error.message);
   };
@@ -39,6 +96,15 @@ export default function App() {
   const handleNavigate = (route) => {
     setCurrentRoute(route);
     document.getElementById('main-scroll-container')?.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleHostEventClick = () => {
+    if (currentUser) {
+      handleNavigate('organiser-profile');
+    } else {
+      setAuthDefaultTab('signup');
+      setAuthModalOpen(true);
+    }
   };
 
   const handleCategorySelect = (category) => {
@@ -64,12 +130,11 @@ export default function App() {
           setAuthDefaultTab('login');
           setAuthModalOpen(true);
         }}
-        onHostEventClick={() => {
-          setAuthDefaultTab('signup');
-          setAuthModalOpen(true);
-        }}
+        onHostEventClick={handleHostEventClick}
         currentUser={currentUser}
         onSignOut={handleSignOut}
+        onNavigate={handleNavigate}
+        currentRoute={currentRoute}
       />
 
       {/* Main Dynamic View Area */}
@@ -82,11 +147,20 @@ export default function App() {
           searchQuery={searchQuery}
           selectedCategory={selectedCategory}
           onSelectCategory={setSelectedCategory}
+          currentUser={currentUser}
+          onUserUpdate={(updatedFields) => {
+            setCurrentUser((prev) => (prev ? { ...prev, ...updatedFields } : prev));
+          }}
+          onSignOut={handleSignOut}
+          onSignInClick={() => {
+            setAuthDefaultTab('login');
+            setAuthModalOpen(true);
+          }}
         />
-        <Footer onHostEventClick={() => {
-          setAuthDefaultTab('signup');
-          setAuthModalOpen(true);
-        }} />
+        <Footer
+          onHostEventClick={handleHostEventClick}
+          onNavigate={handleNavigate}
+        />
       </main>
 
       {/* JWT-Ready Sign In & Registration Modal */}

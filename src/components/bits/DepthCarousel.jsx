@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import gsap from 'gsap';
 import './DepthCarousel.css';
 
@@ -6,11 +6,28 @@ const clamp = (value, min, max) => Math.min(Math.max(value, min), max);
 const normalizeItem = item => typeof item === 'string' ? { image: item, alt: '' } : item;
 
 export default function DepthCarousel({
-  items = [], cardWidth = 300, cardHeight = 380, radius = 18, tint = '#181210',
-  depth = 220, spread = 90, tilt = 22, tiltDirection = 'right', perspective = 1400,
-  visibleCards = 4, falloff = 0.2, blur = 6, duration = 700, ease = 'power3.out',
-  autoplay = false, autoplayDelay = 3200, loop = true, showControls = true,
-  showIndicators = true, onChange, className = '',
+  items = [],
+  cardWidth = 300,
+  cardHeight = 380,
+  radius = 18,
+  tint = '#181210',
+  depth = 220,
+  spread = 90,
+  tilt = 22,
+  tiltDirection = 'right',
+  perspective = 1400,
+  visibleCards = 4,
+  falloff = 0.2,
+  blur = 6,
+  duration = 700,
+  ease = 'power3.out',
+  autoplay = false,
+  autoplayDelay = 3200,
+  loop = true,
+  showControls = true,
+  showIndicators = true,
+  onChange,
+  className = '',
 }) {
   const data = useMemo(() => (Array.isArray(items) ? items : []).map(normalizeItem), [items]);
   const count = data.length;
@@ -112,7 +129,7 @@ export default function DepthCarousel({
   const onCardClick = useCallback(index => setFocus(index), [setFocus]);
 
   useEffect(() => {
-    reducedRef.current = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    reducedRef.current = typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     if (!autoplay || reducedRef.current || count < 2) return;
     const root = rootRef.current;
     let hovered = false;
@@ -134,19 +151,73 @@ export default function DepthCarousel({
   useEffect(() => { layout(posRef.current); }, [layout, depth, spread, tilt, tiltDirection, visibleCards, falloff, blur, cardWidth, cardHeight, radius, count]);
   useEffect(() => () => { tweenRef.current?.kill(); clearInterval(autoTimerRef.current); }, []);
 
-  return <div ref={rootRef} className={`depth-carousel ${className}`.trim()} style={{ '--dc-perspective': `${perspective}px` }} role="group" aria-roledescription="carousel" aria-label="Events" tabIndex={0} onKeyDown={onKeyDown}>
-    <div className="depth-carousel__stage">
-      {data.map((item, i) => <div key={i} className="depth-carousel__card" ref={el => { cardRefs.current[i] = el; }} style={{ width: cardWidth, height: cardHeight, borderRadius: radius }} aria-roledescription="slide" aria-label={`${item.alt || `Event ${i + 1}`} (${i + 1} of ${count})`} aria-hidden={active !== i} onClick={() => onCardClick(i)}>
-        <img className="depth-carousel__img" src={item.image} alt={item.alt || ''} draggable="false" />
-        <span className="depth-carousel__tint" ref={el => { overlayRefs.current[i] = el; }} style={{ background: tint }} />
-      </div>)}
+  return (
+    <div
+      ref={rootRef}
+      className={`depth-carousel ${className}`.trim()}
+      style={{ '--dc-perspective': `${perspective}px` }}
+      role="group"
+      aria-roledescription="carousel"
+      aria-label="Events"
+      tabIndex={0}
+      onKeyDown={onKeyDown}
+    >
+      <div className="depth-carousel__stage">
+        {data.map((item, i) => (
+          <div
+            key={i}
+            className="depth-carousel__card"
+            ref={el => { cardRefs.current[i] = el; }}
+            style={{ width: cardWidth, height: cardHeight, borderRadius: radius }}
+            aria-roledescription="slide"
+            aria-label={`${item.alt || `Event ${i + 1}`} (${i + 1} of ${count})`}
+            aria-hidden={active !== i}
+            onClick={() => onCardClick(i)}
+          >
+            <img className="depth-carousel__img" src={item.image} alt={item.alt || ''} draggable="false" />
+            <span className="depth-carousel__tint" ref={el => { overlayRefs.current[i] = el; }} style={{ background: tint }} />
+          </div>
+        ))}
+      </div>
+      {showControls && count > 1 && (
+        <>
+          <button
+            type="button"
+            className="depth-carousel__arrow depth-carousel__arrow--prev"
+            aria-label="Previous event"
+            onClick={() => navigateBy(-1)}
+          >
+            <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true">
+              <path d="M15 5l-7 7 7 7" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          </button>
+          <button
+            type="button"
+            className="depth-carousel__arrow depth-carousel__arrow--next"
+            aria-label="Next event"
+            onClick={() => navigateBy(1)}
+          >
+            <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true">
+              <path d="M9 5l7 7-7 7" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          </button>
+        </>
+      )}
+      {showIndicators && count > 1 && (
+        <div className="depth-carousel__dots" role="tablist" aria-label="Events">
+          {data.map((item, i) => (
+            <button
+              key={i}
+              type="button"
+              role="tab"
+              aria-selected={active === i}
+              aria-label={`Show ${item.alt || `event ${i + 1}`}`}
+              className={`depth-carousel__dot${active === i ? ' is-active' : ''}`}
+              onClick={() => setFocus(i)}
+            />
+          ))}
+        </div>
+      )}
     </div>
-    {showControls && count > 1 && <>
-      <button type="button" className="depth-carousel__arrow depth-carousel__arrow--prev" aria-label="Previous event" onClick={() => navigateBy(-1)}><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="M15 5l-7 7 7 7" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg></button>
-      <button type="button" className="depth-carousel__arrow depth-carousel__arrow--next" aria-label="Next event" onClick={() => navigateBy(1)}><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="M9 5l7 7-7 7" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg></button>
-    </>}
-    {showIndicators && count > 1 && <div className="depth-carousel__dots" role="tablist" aria-label="Events">
-      {data.map((item, i) => <button key={i} type="button" role="tab" aria-selected={active === i} aria-label={`Show ${item.alt || `event ${i + 1}`}`} className={`depth-carousel__dot${active === i ? ' is-active' : ''}`} onClick={() => setFocus(i)} />)}
-    </div>}
-  </div>;
+  );
 }
