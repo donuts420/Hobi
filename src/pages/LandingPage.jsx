@@ -7,7 +7,6 @@ import EventCard from '../components/cards/EventCard';
 import TicketTierCard from '../components/cards/TicketTierCard';
 import DepthCarousel from '../components/bits/DepthCarousel';
 import AccordionGallery from '../components/bits/AccordionGallery';
-import FaqAccordion from '../components/bits/FaqAccordion';
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
 
 export default function LandingPage({
@@ -16,6 +15,8 @@ export default function LandingPage({
   searchQuery = '',
   selectedCategory: propCategory,
   onSelectCategory: propOnSelectCategory,
+  currentUser = null,
+  onSignInClick,
 }) {
   const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -151,6 +152,11 @@ export default function LandingPage({
 
   const handleConfirmBooking = () => {
     if (totalTicketsCount === 0 || !activeEvent) return;
+    if (!currentUser) {
+      setActiveEvent(null);
+      onSignInClick?.();
+      return;
+    }
     const tierName = Object.keys(selectedTiers).find((k) => selectedTiers[k] > 0);
     const bookingRef = `HOPI-${Math.floor(100000 + Math.random() * 900000)}`;
     setBookingSuccess({
@@ -495,22 +501,6 @@ export default function LandingPage({
         </div>
       )}
 
-      {/* FAQ / Platform Value Section (Standard Ticketing Queries) */}
-      <section className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 mt-12">
-        <div className="text-center space-y-3 mb-10">
-          <Badge variant="butter" size="sm">
-            Help & Guidelines
-          </Badge>
-          <h2 className="text-3xl font-serif font-black text-softButter">
-            Got Questions? We’ve Got You Covered.
-          </h2>
-          <p className="text-xs sm:text-sm text-mutedClay max-w-lg mx-auto">
-            Everything you need to know about booking, instant digital ticket delivery, and venue entry check-in.
-          </p>
-        </div>
-
-        <FaqAccordion />
-      </section>
     </div>
   );
 }
