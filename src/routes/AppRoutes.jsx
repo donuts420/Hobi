@@ -3,6 +3,7 @@ import LandingPage from '../pages/LandingPage';
 import CustomerProfilePage from '../pages/CustomerProfilePage';
 import OrganiserProfilePage from '../pages/OrganiserProfilePage';
 import EventCreationPage from '../pages/EventCreationPage';
+import EventEditPage from '../pages/EventEditPage';
 import ETicketStub from '../components/cards/ETicketStub';
 import Badge from '../components/common/Badge';
 import Button from '../components/common/Button';
@@ -94,6 +95,10 @@ export default function AppRoutes({
         onSelectCity={onSelectCity}
       />
     );
+  }
+
+  if (currentRoute.startsWith('edit-event:')) {
+    return <EventEditPage eventId={currentRoute.slice('edit-event:'.length)} currentUser={currentUser} onNavigate={onNavigate} />;
   }
 
   if (currentRoute === 'vault') {

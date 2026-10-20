@@ -7,6 +7,7 @@ import EventCard from '../components/cards/EventCard';
 import TicketTierCard from '../components/cards/TicketTierCard';
 import DepthCarousel from '../components/bits/DepthCarousel';
 import AccordionGallery from '../components/bits/AccordionGallery';
+import PeekRating from '../components/bits/PeekRating';
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
 
 export default function LandingPage({
@@ -24,11 +25,100 @@ export default function LandingPage({
   const selectedCategory = propCategory !== undefined ? propCategory : internalCategory;
   const setSelectedCategory = propOnSelectCategory || setInternalCategory;
   const [activeEvent, setActiveEvent] = useState(null);
+  const [eventGalleryImages, setEventGalleryImages] = useState([]);
+  const [ratingSummary, setRatingSummary] = useState({ averageRating: 0, reviewCount: 0, userRating: null });
+  const [ratingStatus, setRatingStatus] = useState('');
+  const [ratingSaving, setRatingSaving] = useState(false);
   const [selectedTiers, setSelectedTiers] = useState({});
   const [bookingSuccess, setBookingSuccess] = useState(null);
   const [bookingError, setBookingError] = useState('');
   const [checkoutLoading, setCheckoutLoading] = useState(false);
   const [activeSpotlightIndex, setActiveSpotlightIndex] = useState(0);
+
+  useEffect(() => {
+    let cancelled = false;
+    const savedImages = (activeEvent?.galleryImages || [])
+      .map((photo) => typeof photo === 'string' ? photo : photo.src || photo.image)
+      .filter((src) => typeof src === 'string' && src && src !== activeEvent?.bannerImage);
+    setEventGalleryImages(savedImages);
+    if (!activeEvent?.id || !isSupabaseConfigured) return () => { cancelled = true; };
+
+    supabase.storage.from('event-gallery').list(String(activeEvent.id), { limit: 100 })
+      .then(({ data, error }) => {
+        if (error) throw error;
+        if (!cancelled && data) {
+          const storedImages = data.filter((file) => file.name && !file.name.startsWith('.'))
+            .map((file) => supabase.storage.from('event-gallery').getPublicUrl(`${activeEvent.id}/${file.name}`).data.publicUrl)
+            .filter((src) => src !== activeEvent.bannerImage);
+          setEventGalleryImages([...new Set([...savedImages, ...storedImages])]);
+        }
+      })
+      .catch((error) => console.warn('Could not load event gallery files:', error.message));
+    return () => { cancelled = true; };
+  }, [activeEvent?.id, activeEvent?.bannerImage, activeEvent?.galleryImages]);
+
+  useEffect(() => {
+    let cancelled = false;
+    setRatingSummary({ averageRating: 0, reviewCount: 0, userRating: null });
+    setRatingStatus('');
+    if (!activeEvent?.id || !isSupabaseConfigured) return () => { cancelled = true; };
+    supabase.rpc('get_event_rating_summary', { p_event_id: activeEvent.id })
+      .then(({ data, error }) => {
+        if (error) throw error;
+        const summary = Array.isArray(data) ? data[0] : data;
+        if (!cancelled && summary) setRatingSummary({
+          averageRating: Number(summary.average_rating) || 0,
+          reviewCount: Number(summary.review_count) || 0,
+          userRating: summary.user_rating == null ? null : Number(summary.user_rating),
+        });
+      })
+      .catch((error) => {
+        if (!cancelled) setRatingStatus('Event ratings are unavailable right now.');
+        console.warn('Could not load event rating:', error.message);
+      });
+    return () => { cancelled = true; };
+  }, [activeEvent?.id, currentUser?.id]);
+
+  const handleRateEvent = async (rating) => {
+    if (!currentUser?.id) {
+      onSignInClick?.();
+      return;
+    }
+    if (!isSupabaseConfigured || !activeEvent?.id) {
+      setRatingStatus('Event ratings are unavailable right now.');
+      return;
+    }
+    setRatingSaving(true);
+    setRatingStatus('');
+    try {
+      const { data: { user }, error: userError } = await supabase.auth.getUser();
+      if (userError) throw userError;
+      if (!user) {
+        onSignInClick?.();
+        return;
+      }
+      const { error } = await supabase.from('event_ratings').upsert({
+        event_id: activeEvent.id,
+        user_id: user.id,
+        rating,
+      }, { onConflict: 'event_id,user_id' });
+      if (error) throw error;
+      const { data, error: summaryError } = await supabase.rpc('get_event_rating_summary', { p_event_id: activeEvent.id });
+      if (summaryError) throw summaryError;
+      const summary = Array.isArray(data) ? data[0] : data;
+      if (summary) setRatingSummary({
+        averageRating: Number(summary.average_rating) || 0,
+        reviewCount: Number(summary.review_count) || 0,
+        userRating: summary.user_rating == null ? null : Number(summary.user_rating),
+      });
+      setRatingStatus('Your rating was saved.');
+    } catch (error) {
+      console.warn('Could not save event rating:', error.message);
+      setRatingStatus('Could not save your rating. Please try again.');
+    } finally {
+      setRatingSaving(false);
+    }
+  };
 
   // Load published events from Supabase or fallback to /mock/events.json
   useEffect(() => {
@@ -497,21 +587,22 @@ export default function LandingPage({
 
             {/* Modal Body: Ticket Tier Cards */}
             <div className="p-5 sm:p-6 overflow-y-auto space-y-4">
-              {!bookingSuccess && (
+              <section aria-label="Event photo gallery" className="space-y-2">
+                <h4 className="font-serif text-sm uppercase tracking-wider text-softButter font-semibold">Event Gallery</h4>
                 <AccordionGallery
-                  items={[{ src: activeEvent.bannerImage, label: 'Event banner', alt: activeEvent.title }, ...(activeEvent.galleryImages || [])].map((photo) => ({
-                    image: photo.image || photo.src,
-                    label: photo.label || photo.alt || activeEvent.title,
-                    alt: photo.alt || activeEvent.title,
+                  items={[activeEvent.bannerImage, ...eventGalleryImages].filter(Boolean).map((image, index) => ({
+                    image,
+                    label: index === 0 ? 'Event banner' : `Event photo ${index}`,
+                    alt: `${activeEvent.title} photo ${index + 1}`,
                   }))}
+                  height={250}
+                  defaultIndex={0}
+                  trigger="click"
                   accentColor="#D36135"
                   overlayColor="#181210"
                   textColor="#FFF1A6"
-                  height={220}
-                  defaultIndex={0}
-                  trigger="click"
                 />
-              )}
+              </section>
               {[1, 2].some((number) => activeEvent[`contact_${number}_name`] && activeEvent[`contact_${number}_email`]) && (
                 <section className="rounded-xl border border-elevatedBorder bg-darkRoast/60 p-4 space-y-2" aria-labelledby="event-contact-us-heading">
                   <h4 id="event-contact-us-heading" className="font-serif text-sm font-semibold text-softButter">Contact Us</h4>
@@ -527,6 +618,24 @@ export default function LandingPage({
                       ) : null;
                     })}
                   </div>
+                </section>
+              )}
+              {!bookingSuccess && (
+                <section className="rounded-xl border border-elevatedBorder bg-darkRoast/60 p-4 space-y-3" aria-labelledby="event-rating-heading">
+                  <h4 id="event-rating-heading" className="font-serif text-sm font-semibold text-softButter">Rate this event</h4>
+                  <div className="flex flex-wrap items-center justify-between gap-3">
+                    <PeekRating
+                      rating={ratingSummary.averageRating}
+                      reviewCount={ratingSummary.reviewCount}
+                      tag={null}
+                      userRating={ratingSummary.userRating}
+                      onRate={currentUser ? handleRateEvent : undefined}
+                      disabled={ratingSaving}
+                    />
+                    {!currentUser && <Button variant="outline" size="sm" onClick={() => onSignInClick?.()}>Sign in to rate</Button>}
+                    {ratingSaving && <span className="text-xs text-mutedClay">Saving…</span>}
+                  </div>
+                  {ratingStatus && <p role="status" className="text-xs text-mutedClay">{ratingStatus}</p>}
                 </section>
               )}
               {bookingSuccess ? (

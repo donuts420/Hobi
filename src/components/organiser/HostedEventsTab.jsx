@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { CalendarPlus, Sparkles, Layers, Clock, MapPin } from 'lucide-react';
+import { CalendarPlus, Sparkles, Layers, Clock, MapPin, Pencil, Trash2 } from 'lucide-react';
 import Button from '../common/Button';
 import Badge from '../common/Badge';
 import { supabase } from '../../lib/supabase';
@@ -11,6 +11,8 @@ export default function HostedEventsTab({ currentUser, onNavigate }) {
   const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState('');
+  const [actionError, setActionError] = useState('');
+  const [busyEventId, setBusyEventId] = useState('');
 
   useEffect(() => {
     let cancelled = false;
@@ -20,11 +22,13 @@ export default function HostedEventsTab({ currentUser, onNavigate }) {
         setLoading(false);
         return;
       }
-      const { data, error } = await supabase
+      const { data: profile } = await supabase.from('profiles').select('role').eq('id', currentUser.id).maybeSingle();
+      let query = supabase
         .from('events')
         .select('id,title,starts_at,venue,city,status')
-        .eq('created_by', currentUser.id)
         .order('created_at', { ascending: false });
+      if (profile?.role !== 'administrator') query = query.eq('created_by', currentUser.id);
+      const { data, error } = await query;
       if (cancelled) return;
       if (error) setLoadError('Your hosted events could not be loaded. Please refresh and try again.');
       else setEvents(data || []);
@@ -35,6 +39,39 @@ export default function HostedEventsTab({ currentUser, onNavigate }) {
   }, [currentUser?.id]);
 
   const publishedCount = events.filter((event) => event.status === 'published').length;
+
+  const removeEvent = async (event) => {
+    if (event.status !== 'deleting' && !window.confirm('Delete this event? Events with any booking cannot be deleted.')) return;
+    setActionError('');
+    setBusyEventId(event.id);
+    try {
+      if (event.status !== 'deleting') {
+        const { error } = await supabase.rpc('begin_delete_organizer_event', { p_event_id: event.id });
+        if (error) throw error;
+      }
+      const storage = supabase.storage.from('event-gallery');
+      const { data: files, error: listError } = await storage.list(event.id, { limit: 1000 });
+      if (listError) throw listError;
+      const paths = (files || []).filter((file) => file.id).map((file) => `${event.id}/${file.name}`);
+      if (paths.length) {
+        const { error } = await storage.remove(paths);
+        if (error) throw error;
+      }
+      const { error } = await supabase.rpc('finish_delete_organizer_event', { p_event_id: event.id });
+      if (error) throw error;
+      setEvents((current) => current.filter((item) => item.id !== event.id));
+    } catch (error) {
+      setActionError(error.message?.includes('booking')
+        ? 'This event has booking records and cannot be deleted.'
+        : `Event deletion could not finish. ${error.message || 'Retry the deletion.'}`);
+      if (event.status !== 'deleting' && !error.message?.includes('booking')) {
+        const { data } = await supabase.from('events').select('status').eq('id', event.id).maybeSingle();
+        if (data?.status === 'deleting') setEvents((current) => current.map((item) => item.id === event.id ? { ...item, status: 'deleting' } : item));
+      }
+    } finally {
+      setBusyEventId('');
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -60,6 +97,7 @@ export default function HostedEventsTab({ currentUser, onNavigate }) {
         <div role="alert" className="bg-darkRoast/70 border border-terracotta/50 rounded-2xl p-8 text-center text-sm text-softButter">{loadError}</div>
       ) : events.length > 0 ? (
         <div className="space-y-4">
+          {actionError && <p role="alert" className="rounded-lg border border-terracotta/50 p-3 text-sm text-softButter">{actionError}</p>}
           {events.map((event) => (
             <article key={event.id} className="bg-darkRoast/70 border border-elevatedBorder rounded-2xl p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div className="min-w-0 space-y-2">
@@ -71,6 +109,18 @@ export default function HostedEventsTab({ currentUser, onNavigate }) {
                   <span className="inline-flex items-center gap-1.5"><Clock className="w-3.5 h-3.5 text-terracotta" />{new Date(event.starts_at).toLocaleString()}</span>
                   <span className="inline-flex items-center gap-1.5"><MapPin className="w-3.5 h-3.5 text-terracotta" />{event.venue}, {event.city}</span>
                 </div>
+              </div>
+              <div className="flex shrink-0 gap-2">
+                {event.status === 'deleting' ? (
+                  <Button type="button" variant="outline" size="sm" disabled={busyEventId === event.id} onClick={() => removeEvent(event)}>
+                    {busyEventId === event.id ? 'Retrying…' : 'Retry Delete'}
+                  </Button>
+                ) : <>
+                  <Button type="button" variant="outline" size="sm" icon={<Pencil className="h-3.5 w-3.5" />} onClick={() => onNavigate?.(`edit-event:${event.id}`)}>Edit Event</Button>
+                  <Button type="button" variant="outline" size="sm" icon={<Trash2 className="h-3.5 w-3.5" />} disabled={busyEventId === event.id} onClick={() => removeEvent(event)}>
+                    {busyEventId === event.id ? 'Deleting…' : 'Delete'}
+                  </Button>
+                </>}
               </div>
             </article>
           ))}
