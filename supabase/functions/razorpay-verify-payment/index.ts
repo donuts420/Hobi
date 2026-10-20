@@ -1,6 +1,7 @@
 import { jsonResponse, readJson, withSupabase } from '../_shared/supabase.ts';
 import { finalizeCapturedPayment } from '../_shared/payment.ts';
 import { verifyCheckoutSignature } from '../_shared/razorpay.js';
+import { sendTicketEmailIfNeeded } from '../_shared/ticket-email.ts';
 
 Deno.serve(withSupabase({ auth: 'user' }, async (request: Request, context) => {
   if (request.method !== 'POST') return jsonResponse(request, { error: 'Method not allowed' }, 405);
@@ -38,7 +39,15 @@ Deno.serve(withSupabase({ auth: 'user' }, async (request: Request, context) => {
     }
 
     const outcome = await finalizeCapturedPayment(admin, body.orderId, body.paymentId);
-    return jsonResponse(request, { status: outcome, bookingId: booking.id });
+    let ticketEmailSent = false;
+    if (outcome === 'paid') {
+      try {
+        ticketEmailSent = await sendTicketEmailIfNeeded(admin, booking.id);
+      } catch (error) {
+        console.error('Ticket email will need retry', error instanceof Error ? error.message : 'unknown error');
+      }
+    }
+    return jsonResponse(request, { status: outcome, bookingId: booking.id, ticketEmailSent });
   } catch (error) {
     console.error('razorpay-verify-payment failed', error instanceof Error ? error.message : 'unknown error');
     return jsonResponse(request, { error: 'We could not confirm the payment yet. Check My Bookings before retrying.' }, 502);
